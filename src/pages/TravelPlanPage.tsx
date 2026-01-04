@@ -9,7 +9,18 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/layout/Layout';
+import { AnimatedRoute } from '@/components/travel/AnimatedRoute';
 import { destinations } from '@/data/mockData';
+
+// Route stops for the animated journey
+const routeStops = [
+  { id: '1', name: 'New York', type: 'origin' as const, icon: 'home' as const },
+  { id: '2', name: 'Athens', type: 'flight' as const, icon: 'plane' as const },
+  { id: '3', name: 'Canaves Hotel', type: 'hotel' as const, icon: 'hotel' as const },
+  { id: '4', name: 'Oia Castle', type: 'activity' as const, icon: 'pin' as const },
+  { id: '5', name: 'Santorini', type: 'destination' as const, icon: 'pin' as const },
+  { id: '6', name: 'New York', type: 'origin' as const, icon: 'home' as const },
+];
 
 // Mock itinerary data
 const mockItinerary = {
@@ -138,6 +149,15 @@ export default function TravelPlanPage() {
                   <p className="text-sm font-medium">4 Restaurants</p>
                 </div>
               </div>
+            </motion.div>
+
+            {/* Animated Route */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+            >
+              <AnimatedRoute stops={routeStops} />
             </motion.div>
 
             {/* Flights */}
