@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Settings, Grid, Bookmark, Users, MapPin,
-  Link as LinkIcon, Edit, ChevronRight, Camera, Loader2, LogOut
+  Link as LinkIcon, Edit, ChevronRight, Camera, Loader2, LogOut, Plane, Heart, UserPlus, UserMinus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -14,6 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile, useUpdateProfile, useUploadAvatar } from '@/hooks/useProfile';
+import { useConnections, useFollowUser, useUnfollowUser } from '@/hooks/useConnections';
+import { useSavedItineraries } from '@/hooks/useItineraries';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -45,8 +47,14 @@ export default function ProfilePage() {
   const isOwnProfile = !userId || userId === user?.id;
 
   const { data: profile, isLoading } = useProfile(targetUserId);
+  const { data: connections } = useConnections(targetUserId);
+  const { data: savedItineraries, isLoading: savedLoading } = useSavedItineraries();
   const updateProfile = useUpdateProfile();
   const uploadAvatar = useUploadAvatar();
+  const followUser = useFollowUser();
+  const unfollowUser = useUnfollowUser();
+
+  const isFollowing = connections?.followers?.some(f => f.follower_id === user?.id) || false;
 
   // Redirect to auth if not logged in and viewing own profile
   if (!user && !userId) {
@@ -100,6 +108,26 @@ export default function ProfilePage() {
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const handleFollow = async () => {
+    if (!targetUserId || !user) return;
+    try {
+      await followUser.mutateAsync(targetUserId);
+      toast({ title: 'Following!', description: `You are now following ${profile?.display_name || 'this user'}.` });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleUnfollow = async () => {
+    if (!targetUserId || !user) return;
+    try {
+      await unfollowUser.mutateAsync(targetUserId);
+      toast({ title: 'Unfollowed', description: `You unfollowed ${profile?.display_name || 'this user'}.` });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
   };
 
   if (isLoading) {
@@ -174,6 +202,12 @@ export default function ProfilePage() {
                     {profile.display_name || 'Traveler'}
                   </h1>
                   <p className="text-muted-foreground mb-2">@{profile.username || 'user'}</p>
+                  
+                  {/* Follower/Following counts */}
+                  <div className="flex gap-4 text-sm mb-2">
+                    <span><strong>{connections?.followers?.length || 0}</strong> followers</span>
+                    <span><strong>{connections?.following?.length || 0}</strong> following</span>
+                  </div>
                   
                   {profile.location && (
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -271,7 +305,20 @@ export default function ProfilePage() {
                     </Button>
                   </>
                 ) : (
-                  <Button className="rounded-xl gradient-sky">Follow</Button>
+                  <Button 
+                    className={`rounded-xl ${isFollowing ? 'bg-muted text-foreground hover:bg-muted/80' : 'gradient-sky'}`}
+                    onClick={isFollowing ? handleUnfollow : handleFollow}
+                    disabled={followUser.isPending || unfollowUser.isPending}
+                  >
+                    {followUser.isPending || unfollowUser.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : isFollowing ? (
+                      <UserMinus className="w-4 h-4 mr-2" />
+                    ) : (
+                      <UserPlus className="w-4 h-4 mr-2" />
+                    )}
+                    {isFollowing ? 'Unfollow' : 'Follow'}
+                  </Button>
                 )}
               </div>
             </div>
@@ -303,19 +350,31 @@ export default function ProfilePage() {
               transition={{ delay: 0.2 }}
               className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8"
             >
-              <button className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all text-left">
+              <button 
+                onClick={() => navigate('/chat')}
+                className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all text-left"
+              >
                 <Users className="w-5 h-5 text-primary mb-2" />
-                <p className="font-medium text-sm">My Groups</p>
+                <p className="font-medium text-sm">Connect</p>
               </button>
-              <button className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all text-left">
+              <button 
+                onClick={() => setActiveTab('saved')}
+                className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all text-left"
+              >
                 <Bookmark className="w-5 h-5 text-accent mb-2" />
                 <p className="font-medium text-sm">Saved</p>
               </button>
-              <button className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all text-left">
-                <MapPin className="w-5 h-5 text-primary mb-2" />
-                <p className="font-medium text-sm">Nearby</p>
+              <button 
+                onClick={() => navigate('/my-trips')}
+                className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all text-left"
+              >
+                <Plane className="w-5 h-5 text-primary mb-2" />
+                <p className="font-medium text-sm">My Trips</p>
               </button>
-              <button className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all text-left">
+              <button 
+                onClick={() => navigate('/search')}
+                className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all text-left"
+              >
                 <ChevronRight className="w-5 h-5 text-accent mb-2" />
                 <p className="font-medium text-sm">AI Assistant</p>
               </button>
@@ -343,7 +402,7 @@ export default function ProfilePage() {
                   <Button
                     variant="outline"
                     className="mt-4 rounded-xl"
-                    onClick={() => navigate('/add')}
+                    onClick={() => navigate('/create')}
                   >
                     Create your first post
                   </Button>
@@ -352,10 +411,53 @@ export default function ProfilePage() {
             </TabsContent>
 
             <TabsContent value="saved">
-              <div className="text-center py-12 text-muted-foreground">
-                <Bookmark className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-                <p>Save posts to see them here</p>
-              </div>
+              {savedLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : savedItineraries && savedItineraries.length > 0 ? (
+                <div className="grid gap-4">
+                  {savedItineraries.map((saved: any) => (
+                    <motion.div
+                      key={saved.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-card rounded-xl shadow-travel p-4 cursor-pointer hover:shadow-travel-lg transition-all"
+                      onClick={() => navigate(`/plan/${saved.itinerary?.id}`)}
+                    >
+                      <div className="flex items-center gap-4">
+                        {saved.itinerary?.cover_image && (
+                          <img 
+                            src={saved.itinerary.cover_image} 
+                            alt={saved.itinerary.title}
+                            className="w-16 h-16 rounded-lg object-cover"
+                          />
+                        )}
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{saved.itinerary?.title}</h3>
+                          <p className="text-sm text-muted-foreground">{saved.itinerary?.destination}</p>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                            <Heart className="w-3 h-3" />
+                            {saved.itinerary?.likes_count || 0} likes
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Bookmark className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+                  <p>No saved itineraries yet</p>
+                  <Button
+                    variant="outline"
+                    className="mt-4 rounded-xl"
+                    onClick={() => navigate('/explore')}
+                  >
+                    Explore itineraries
+                  </Button>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>
