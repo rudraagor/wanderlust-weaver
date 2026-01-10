@@ -1,13 +1,16 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Search, Bell, MessageCircle, Home, Compass, 
-  PlusCircle, User, MapPin
+  PlusCircle, User, MapPin, LogIn
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/hooks/useProfile';
 
 const navItems = [
   { path: '/', label: 'Home', icon: Home },
@@ -18,7 +21,10 @@ const navItems = [
 
 export function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const { user } = useAuth();
+  const { data: profile } = useProfile();
 
   return (
     <header className="sticky top-0 z-50 glass-strong">
@@ -90,6 +96,32 @@ export function Header() {
                 </span>
               </Button>
             </motion.div>
+            
+            {/* Auth/Profile Button */}
+            {user ? (
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link to="/profile">
+                  <Avatar className="w-9 h-9 ring-2 ring-primary/20 cursor-pointer">
+                    <AvatarImage src={profile?.avatar_url || undefined} />
+                    <AvatarFallback className="text-xs bg-gradient-to-br from-primary to-accent text-primary-foreground">
+                      {profile?.display_name?.[0] || user.email?.[0]?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
+              </motion.div>
+            ) : (
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="rounded-xl"
+                  onClick={() => navigate('/auth')}
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Sign In
+                </Button>
+              </motion.div>
+            )}
           </div>
         </div>
       </div>

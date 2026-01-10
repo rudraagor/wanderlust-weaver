@@ -1,18 +1,128 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Settings, Grid, Bookmark, Users, MapPin,
-  Link as LinkIcon, Edit, ChevronRight, Camera
+  Link as LinkIcon, Edit, ChevronRight, Camera, Loader2, LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Layout } from '@/components/layout/Layout';
-import { currentUser } from '@/data/mockData';
-import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProfile, useUpdateProfile, useUploadAvatar } from '@/hooks/useProfile';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 export default function ProfilePage() {
+  const { userId } = useParams();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [activeTab, setActiveTab] = useState('posts');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    display_name: '',
+    username: '',
+    bio: '',
+    location: '',
+    website: '',
+  });
+
+  // Determine which profile to show
+  const targetUserId = userId || user?.id;
+  const isOwnProfile = !userId || userId === user?.id;
+
+  const { data: profile, isLoading } = useProfile(targetUserId);
+  const updateProfile = useUpdateProfile();
+  const uploadAvatar = useUploadAvatar();
+
+  // Redirect to auth if not logged in and viewing own profile
+  if (!user && !userId) {
+    navigate('/auth');
+    return null;
+  }
+
+  const handleEditOpen = () => {
+    if (profile) {
+      setEditForm({
+        display_name: profile.display_name || '',
+        username: profile.username || '',
+        bio: profile.bio || '',
+        location: profile.location || '',
+        website: profile.website || '',
+      });
+    }
+    setIsEditing(true);
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      await updateProfile.mutateAsync(editForm);
+      toast({ title: 'Profile updated!', description: 'Your changes have been saved.' });
+      setIsEditing(false);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update profile',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      await uploadAvatar.mutateAsync(file);
+      toast({ title: 'Avatar updated!', description: 'Your profile picture has been changed.' });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to upload avatar',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+          <Users className="w-16 h-16 text-muted-foreground mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Profile not found</h2>
+          <p className="text-muted-foreground">This user doesn't exist.</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -29,139 +139,188 @@ export default function ProfilePage() {
                 {/* Avatar */}
                 <div className="relative">
                   <Avatar className="w-24 h-24 md:w-32 md:h-32 ring-4 ring-primary/20">
-                    <AvatarImage src={currentUser.avatar} />
-                    <AvatarFallback className="text-2xl">{currentUser.name[0]}</AvatarFallback>
+                    <AvatarImage src={profile.avatar_url || undefined} />
+                    <AvatarFallback className="text-2xl bg-gradient-to-br from-primary to-accent text-primary-foreground">
+                      {profile.display_name?.[0] || profile.username?.[0] || 'U'}
+                    </AvatarFallback>
                   </Avatar>
-                  <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full gradient-sky flex items-center justify-center shadow-travel">
-                    <Camera className="w-4 h-4 text-primary-foreground" />
-                  </button>
+                  {isOwnProfile && (
+                    <>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarUpload}
+                      />
+                      <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadAvatar.isPending}
+                        className="absolute bottom-0 right-0 w-8 h-8 rounded-full gradient-sky flex items-center justify-center shadow-travel disabled:opacity-50"
+                      >
+                        {uploadAvatar.isPending ? (
+                          <Loader2 className="w-4 h-4 text-primary-foreground animate-spin" />
+                        ) : (
+                          <Camera className="w-4 h-4 text-primary-foreground" />
+                        )}
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 {/* Info */}
                 <div>
                   <h1 className="font-display font-bold text-2xl md:text-3xl mb-1">
-                    {currentUser.name}
+                    {profile.display_name || 'Traveler'}
                   </h1>
-                  <p className="text-muted-foreground mb-2">{currentUser.username}</p>
+                  <p className="text-muted-foreground mb-2">@{profile.username || 'user'}</p>
                   
-                  {/* Stats */}
-                  <div className="flex items-center gap-6 text-sm">
-                    <div className="text-center">
-                      <p className="font-bold">{currentUser.trips}</p>
-                      <p className="text-muted-foreground">Trips</p>
+                  {profile.location && (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <MapPin className="w-3.5 h-3.5" />
+                      {profile.location}
                     </div>
-                    <div className="text-center">
-                      <p className="font-bold">{currentUser.followers.toLocaleString()}</p>
-                      <p className="text-muted-foreground">Followers</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="font-bold">{currentUser.following}</p>
-                      <p className="text-muted-foreground">Following</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
               {/* Actions */}
               <div className="flex gap-2">
-                <Button variant="outline" size="icon" className="rounded-xl">
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Link to="/settings">
-                  <Button variant="outline" size="icon" className="rounded-xl">
-                    <Settings className="w-4 h-4" />
-                  </Button>
-                </Link>
+                {isOwnProfile ? (
+                  <>
+                    <Dialog open={isEditing} onOpenChange={setIsEditing}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="rounded-xl" onClick={handleEditOpen}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Edit Profile</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="display_name">Display Name</Label>
+                            <Input
+                              id="display_name"
+                              value={editForm.display_name}
+                              onChange={(e) => setEditForm({ ...editForm, display_name: e.target.value })}
+                              placeholder="Your name"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="username">Username</Label>
+                            <Input
+                              id="username"
+                              value={editForm.username}
+                              onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                              placeholder="username"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="bio">Bio</Label>
+                            <Textarea
+                              id="bio"
+                              value={editForm.bio}
+                              onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                              placeholder="Tell us about yourself..."
+                              className="rounded-xl resize-none"
+                              rows={3}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="location">Location</Label>
+                            <Input
+                              id="location"
+                              value={editForm.location}
+                              onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                              placeholder="City, Country"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="website">Website</Label>
+                            <Input
+                              id="website"
+                              value={editForm.website}
+                              onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
+                              placeholder="https://yoursite.com"
+                              className="rounded-xl"
+                            />
+                          </div>
+                          <Button
+                            onClick={handleSaveProfile}
+                            disabled={updateProfile.isPending}
+                            className="w-full rounded-xl gradient-sky"
+                          >
+                            {updateProfile.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : null}
+                            Save Changes
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <Button variant="outline" size="icon" className="rounded-xl" onClick={() => navigate('/settings')}>
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" className="rounded-xl" onClick={handleSignOut}>
+                      <LogOut className="w-4 h-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <Button className="rounded-xl gradient-sky">Follow</Button>
+                )}
               </div>
             </div>
 
             {/* Bio */}
-            <p className="text-sm mb-4 max-w-xl">{currentUser.bio}</p>
+            {profile.bio && (
+              <p className="text-sm mb-4 max-w-xl">{profile.bio}</p>
+            )}
 
-            {/* External Links */}
-            <div className="flex flex-wrap gap-3">
-              {currentUser.externalLinks.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-                >
-                  <LinkIcon className="w-3.5 h-3.5" />
-                  {link.label}
-                </a>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Stories/Highlights */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="mb-8"
-          >
-            <h3 className="font-semibold mb-4">Story Highlights</h3>
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-              {currentUser.stories.map((story, index) => (
-                <motion.div
-                  key={story.id}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.1 + index * 0.1 }}
-                  className="flex flex-col items-center gap-2 shrink-0"
-                >
-                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-full p-0.5 bg-gradient-to-tr from-primary to-accent">
-                    <div className="w-full h-full rounded-full p-0.5 bg-background">
-                      <img 
-                        src={story.image} 
-                        alt={story.title}
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    </div>
-                  </div>
-                  <span className="text-xs font-medium">{story.title}</span>
-                </motion.div>
-              ))}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.4 }}
-                className="flex flex-col items-center gap-2 shrink-0"
+            {/* Website */}
+            {profile.website && (
+              <a
+                href={profile.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
               >
-                <button className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center hover:border-primary transition-colors">
-                  <span className="text-2xl text-muted-foreground">+</span>
-                </button>
-                <span className="text-xs text-muted-foreground">New</span>
-              </motion.div>
-            </div>
+                <LinkIcon className="w-3.5 h-3.5" />
+                {profile.website.replace(/^https?:\/\//, '')}
+              </a>
+            )}
           </motion.div>
 
-          {/* Quick Actions */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8"
-          >
-            <Link to="/groups" className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all">
-              <Users className="w-5 h-5 text-primary mb-2" />
-              <p className="font-medium text-sm">My Groups</p>
-            </Link>
-            <Link to="/saved" className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all">
-              <Bookmark className="w-5 h-5 text-accent mb-2" />
-              <p className="font-medium text-sm">Saved</p>
-            </Link>
-            <Link to="/nearby" className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all">
-              <MapPin className="w-5 h-5 text-primary mb-2" />
-              <p className="font-medium text-sm">Nearby</p>
-            </Link>
-            <Link to="/chat" className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all">
-              <ChevronRight className="w-5 h-5 text-accent mb-2" />
-              <p className="font-medium text-sm">AI Assistant</p>
-            </Link>
-          </motion.div>
+          {/* Quick Actions - only for own profile */}
+          {isOwnProfile && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8"
+            >
+              <button className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all text-left">
+                <Users className="w-5 h-5 text-primary mb-2" />
+                <p className="font-medium text-sm">My Groups</p>
+              </button>
+              <button className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all text-left">
+                <Bookmark className="w-5 h-5 text-accent mb-2" />
+                <p className="font-medium text-sm">Saved</p>
+              </button>
+              <button className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all text-left">
+                <MapPin className="w-5 h-5 text-primary mb-2" />
+                <p className="font-medium text-sm">Nearby</p>
+              </button>
+              <button className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all text-left">
+                <ChevronRight className="w-5 h-5 text-accent mb-2" />
+                <p className="font-medium text-sm">AI Assistant</p>
+              </button>
+            </motion.div>
+          )}
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -177,32 +336,18 @@ export default function ProfilePage() {
             </TabsList>
 
             <TabsContent value="posts">
-              <div className="grid grid-cols-3 gap-1 md:gap-2">
-                {currentUser.posts.map((post, index) => (
-                  <motion.div
-                    key={post.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer"
+              <div className="text-center py-12 text-muted-foreground">
+                <Grid className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+                <p>No posts yet</p>
+                {isOwnProfile && (
+                  <Button
+                    variant="outline"
+                    className="mt-4 rounded-xl"
+                    onClick={() => navigate('/add')}
                   >
-                    <img 
-                      src={post.media} 
-                      alt={post.caption}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <div className="flex items-center gap-4 text-primary-foreground">
-                        <span className="flex items-center gap-1">
-                          ❤️ {post.likes}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          💬 {post.comments}
-                        </span>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    Create your first post
+                  </Button>
+                )}
               </div>
             </TabsContent>
 
