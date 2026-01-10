@@ -7,11 +7,14 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import SearchPage from "./pages/SearchPage";
 import ExplorePage from "./pages/ExplorePage";
-import AddPage from "./pages/AddPage";
+import CreatePage from "./pages/CreatePage";
 import ProfilePage from "./pages/ProfilePage";
 import SettingsPage from "./pages/SettingsPage";
 import TravelPlanPage from "./pages/TravelPlanPage";
 import AuthPage from "./pages/AuthPage";
+import ChatPage from "./pages/ChatPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import MyTripsPage from "./pages/MyTripsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,10 +31,13 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/explore" element={<ExplorePage />} />
-            <Route path="/add" element={<AddPage />} />
+            <Route path="/create" element={<CreatePage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/profile/:userId" element={<ProfilePage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/my-trips" element={<MyTripsPage />} />
             <Route path="/plan/:id" element={<TravelPlanPage />} />
             <Route path="/plan/generated" element={<TravelPlanPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

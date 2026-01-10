@@ -15,7 +15,7 @@ import { useProfile } from '@/hooks/useProfile';
 const navItems = [
   { path: '/', label: 'Home', icon: Home },
   { path: '/explore', label: 'Explore', icon: Compass },
-  { path: '/add', label: 'Add', icon: PlusCircle },
+  { path: '/create', label: 'Create', icon: PlusCircle },
   { path: '/profile', label: 'Profile', icon: User },
 ];
 
@@ -81,7 +81,7 @@ export function Header() {
           {/* Right Actions */}
           <div className="flex items-center gap-2 shrink-0">
             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <Button variant="ghost" size="icon" className="rounded-xl relative">
+              <Button variant="ghost" size="icon" className="rounded-xl relative" onClick={() => navigate('/notifications')}>
                 <Bell className="w-5 h-5" />
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent text-accent-foreground text-xs rounded-full flex items-center justify-center font-medium">
                   3
@@ -89,7 +89,7 @@ export function Header() {
               </Button>
             </motion.div>
             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <Button variant="ghost" size="icon" className="rounded-xl relative">
+              <Button variant="ghost" size="icon" className="rounded-xl relative" onClick={() => navigate('/chat')}>
                 <MessageCircle className="w-5 h-5" />
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent text-accent-foreground text-xs rounded-full flex items-center justify-center font-medium">
                   5
