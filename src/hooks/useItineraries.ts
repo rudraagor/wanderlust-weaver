@@ -331,32 +331,46 @@ export function useToggleItineraryVisibility() {
   });
 }
 
-// Like/unlike an itinerary
+// Like an itinerary
 export function useLikeItinerary() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ itineraryId, isLiked }: { itineraryId: string; isLiked: boolean }) => {
+    mutationFn: async (itineraryId: string) => {
       if (!user) throw new Error('Not authenticated');
 
-      if (isLiked) {
-        const { error } = await supabase
-          .from('itinerary_likes')
-          .delete()
-          .eq('itinerary_id', itineraryId)
-          .eq('user_id', user.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('itinerary_likes')
-          .insert({ itinerary_id: itineraryId, user_id: user.id });
-        if (error) throw error;
-      }
+      const { error } = await supabase
+        .from('itinerary_likes')
+        .insert({ itinerary_id: itineraryId, user_id: user.id });
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['public-itineraries'] });
-      queryClient.invalidateQueries({ queryKey: ['liked-itineraries'] });
+      queryClient.invalidateQueries({ queryKey: ['user-likes'] });
+    },
+  });
+}
+
+// Unlike an itinerary
+export function useUnlikeItinerary() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (itineraryId: string) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('itinerary_likes')
+        .delete()
+        .eq('itinerary_id', itineraryId)
+        .eq('user_id', user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['public-itineraries'] });
+      queryClient.invalidateQueries({ queryKey: ['user-likes'] });
     },
   });
 }
@@ -382,28 +396,40 @@ export function useLikedItineraries() {
   });
 }
 
-// Save/unsave an itinerary
+// Save an itinerary
 export function useSaveItinerary() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ itineraryId, isSaved }: { itineraryId: string; isSaved: boolean }) => {
+    mutationFn: async (itineraryId: string) => {
       if (!user) throw new Error('Not authenticated');
 
-      if (isSaved) {
-        const { error } = await supabase
-          .from('saved_itineraries')
-          .delete()
-          .eq('itinerary_id', itineraryId)
-          .eq('user_id', user.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('saved_itineraries')
-          .insert({ itinerary_id: itineraryId, user_id: user.id });
-        if (error) throw error;
-      }
+      const { error } = await supabase
+        .from('saved_itineraries')
+        .insert({ itinerary_id: itineraryId, user_id: user.id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['saved-itineraries'] });
+    },
+  });
+}
+
+// Unsave an itinerary
+export function useUnsaveItinerary() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (savedId: string) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('saved_itineraries')
+        .delete()
+        .eq('id', savedId);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['saved-itineraries'] });

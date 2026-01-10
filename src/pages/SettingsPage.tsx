@@ -4,11 +4,22 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Moon, Sun, Globe, Lock, Bell, 
   HelpCircle, Info, LogOut, ChevronRight,
-  Eye, EyeOff, Users, Trash2, FileText
+  Eye, EyeOff, Users, Trash2, FileText, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Layout } from '@/components/layout/Layout';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface SettingItemProps {
   icon: React.ElementType;
@@ -48,13 +59,81 @@ function SettingItem({ icon: Icon, label, description, action, onClick, danger }
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(false);
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+  
+  const [darkMode, setDarkMode] = useState(document.documentElement.classList.contains('dark'));
   const [privateAccount, setPrivateAccount] = useState(false);
   const [notifications, setNotifications] = useState(true);
+  
+  // Change Password State
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
     document.documentElement.classList.toggle('dark');
+  };
+
+  const handleChangePassword = async () => {
+    if (passwordForm.newPassword.length < 6) {
+      toast({
+        title: 'Password too short',
+        description: 'Password must be at least 6 characters',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({
+        title: 'Passwords do not match',
+        description: 'Please ensure both passwords are the same',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordForm.newPassword,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Password changed!',
+        description: 'Your password has been updated successfully.',
+      });
+      setShowPasswordDialog(false);
+      setPasswordForm({ newPassword: '', confirmPassword: '' });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to change password',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
+  const handleDeleteAccount = async () => {
+    toast({
+      title: 'Not implemented',
+      description: 'Account deletion requires admin approval. Please contact support.',
+      variant: 'destructive',
+    });
   };
 
   return (
@@ -125,6 +204,7 @@ export default function SettingsPage() {
               <SettingItem
                 icon={Lock}
                 label="Change Password"
+                onClick={() => setShowPasswordDialog(true)}
               />
               <SettingItem
                 icon={Users}
@@ -167,6 +247,7 @@ export default function SettingsPage() {
                 icon={FileText}
                 label="Saved Items"
                 description="View your saved posts and plans"
+                onClick={() => navigate('/profile')}
               />
               <SettingItem
                 icon={FileText}
@@ -206,18 +287,63 @@ export default function SettingsPage() {
               <SettingItem
                 icon={LogOut}
                 label="Log Out"
+                onClick={handleSignOut}
                 danger
               />
               <SettingItem
                 icon={Trash2}
                 label="Delete Account"
                 description="Permanently delete your account"
+                onClick={handleDeleteAccount}
                 danger
               />
             </motion.div>
           </div>
         </div>
       </div>
+
+      {/* Change Password Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                placeholder="Enter new password"
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={passwordForm.confirmPassword}
+                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                placeholder="Confirm new password"
+                className="rounded-xl"
+              />
+            </div>
+            <Button
+              onClick={handleChangePassword}
+              disabled={isChangingPassword}
+              className="w-full rounded-xl gradient-sky"
+            >
+              {isChangingPassword ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              Change Password
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

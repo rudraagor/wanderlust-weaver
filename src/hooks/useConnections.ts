@@ -15,6 +15,33 @@ export interface Connection {
   };
 }
 
+// Get both followers and following for a user
+export function useConnections(userId?: string) {
+  const { user } = useAuth();
+  const targetUserId = userId || user?.id;
+
+  return useQuery({
+    queryKey: ['connections', targetUserId],
+    queryFn: async () => {
+      if (!targetUserId) return { followers: [], following: [] };
+
+      const [followersRes, followingRes] = await Promise.all([
+        supabase.from('user_connections').select('*').eq('following_id', targetUserId),
+        supabase.from('user_connections').select('*').eq('follower_id', targetUserId),
+      ]);
+
+      if (followersRes.error) throw followersRes.error;
+      if (followingRes.error) throw followingRes.error;
+
+      return {
+        followers: followersRes.data || [],
+        following: followingRes.data || [],
+      };
+    },
+    enabled: !!targetUserId,
+  });
+}
+
 // Get users the current user is following
 export function useFollowing() {
   const { user } = useAuth();
