@@ -126,6 +126,36 @@ export default function SearchPage() {
 
           {/* Filters Grid */}
           <div className="space-y-8">
+            {/* Departure City - First */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+              className="p-6 rounded-2xl bg-card shadow-travel"
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                  <Plane className="w-5 h-5 text-secondary-foreground" />
+                </div>
+                <Label className="text-lg font-semibold">Departure City</Label>
+              </div>
+              <Select value={sourceCity} onValueChange={setSourceCity}>
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="Where are you flying from?" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {sourceCities.map((city) => (
+                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {sourceCity && (
+                <div className="mt-3 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+                  Flights will be searched from {sourceCity}
+                </div>
+              )}
+            </motion.div>
+
             {/* Budget & Country Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Budget */}
@@ -197,7 +227,7 @@ export default function SearchPage() {
                 )}
               </motion.div>
 
-              {/* Country */}
+              {/* Destination Country */}
               <motion.div 
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -233,36 +263,6 @@ export default function SearchPage() {
                 )}
               </motion.div>
             </div>
-
-            {/* Source City (Departure) */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-              className="p-6 rounded-2xl bg-card shadow-travel"
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
-                  <Plane className="w-5 h-5 text-secondary-foreground" />
-                </div>
-                <Label className="text-lg font-semibold">Departure City</Label>
-              </div>
-              <Select value={sourceCity} onValueChange={setSourceCity}>
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder="Where are you flying from?" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {sourceCities.map((city) => (
-                    <SelectItem key={city} value={city}>{city}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {sourceCity && (
-                <div className="mt-3 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-                  Flights will be searched from {sourceCity}
-                </div>
-              )}
-            </motion.div>
 
             {/* Dates */}
             <motion.div 

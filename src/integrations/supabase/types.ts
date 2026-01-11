@@ -25,6 +25,7 @@ export type Database = {
           id: string
           is_private: boolean
           itinerary_id: string
+          planned_budget: number | null
           updated_at: string
           user_id: string
         }
@@ -38,6 +39,7 @@ export type Database = {
           id?: string
           is_private?: boolean
           itinerary_id: string
+          planned_budget?: number | null
           updated_at?: string
           user_id: string
         }
@@ -51,6 +53,7 @@ export type Database = {
           id?: string
           is_private?: boolean
           itinerary_id?: string
+          planned_budget?: number | null
           updated_at?: string
           user_id?: string
         }

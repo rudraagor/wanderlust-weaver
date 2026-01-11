@@ -1,5 +1,6 @@
 import { useExpenses } from '@/hooks/useExpenses';
 import { Plane, Hotel, Activity, Utensils, Car, MoreHorizontal, DollarSign } from 'lucide-react';
+import { BudgetAlert } from './BudgetAlert';
 
 const categoryIcons: Record<string, any> = {
   flight: Plane,
@@ -10,7 +11,12 @@ const categoryIcons: Record<string, any> = {
   other: MoreHorizontal,
 };
 
-export function TripExpenses({ bookedTripId }: { bookedTripId: string }) {
+interface TripExpensesProps {
+  bookedTripId: string;
+  plannedBudget?: number | null;
+}
+
+export function TripExpenses({ bookedTripId, plannedBudget }: TripExpensesProps) {
   const { data: expenses, isLoading } = useExpenses(bookedTripId);
 
   if (isLoading) return <div className="text-sm text-muted-foreground">Loading expenses...</div>;
@@ -20,6 +26,15 @@ export function TripExpenses({ bookedTripId }: { bookedTripId: string }) {
 
   return (
     <div className="space-y-3 mt-4 pt-4 border-t border-border">
+      {/* Budget Alert */}
+      {plannedBudget && plannedBudget > 0 && (
+        <BudgetAlert 
+          totalExpenses={totalExpenses} 
+          plannedBudget={plannedBudget} 
+          className="mb-4"
+        />
+      )}
+      
       <div className="flex items-center justify-between">
         <h4 className="font-semibold flex items-center gap-2">
           <DollarSign className="w-4 h-4" /> Trip Expenses

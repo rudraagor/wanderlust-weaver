@@ -522,7 +522,13 @@ export function useUnsaveItinerary() {
   });
 }
 
-// Get saved itineraries
+// Get saved itineraries with full details
+export interface SavedItinerary {
+  id: string;
+  itinerary_id: string;
+  itinerary: Itinerary | null;
+}
+
 export function useSavedItineraries() {
   const { user } = useAuth();
 
@@ -534,13 +540,20 @@ export function useSavedItineraries() {
       const { data, error } = await supabase
         .from('saved_itineraries')
         .select(`
+          id,
           itinerary_id,
           itineraries(*)
         `)
         .eq('user_id', user.id);
 
       if (error) throw error;
-      return data.map(d => d.itineraries).filter(Boolean) as Itinerary[];
+      
+      // Return the full structure with id, itinerary_id, and nested itinerary
+      return data.map(d => ({
+        id: d.id,
+        itinerary_id: d.itinerary_id,
+        itinerary: d.itineraries as Itinerary | null,
+      })) as SavedItinerary[];
     },
     enabled: !!user,
   });
