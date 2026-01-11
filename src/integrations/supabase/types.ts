@@ -17,6 +17,7 @@ export type Database = {
       booked_trips: {
         Row: {
           activities_booked: boolean
+          booking_reference: string | null
           booking_status: string
           created_at: string
           flights_booked: boolean
@@ -29,6 +30,7 @@ export type Database = {
         }
         Insert: {
           activities_booked?: boolean
+          booking_reference?: string | null
           booking_status?: string
           created_at?: string
           flights_booked?: boolean
@@ -41,6 +43,7 @@ export type Database = {
         }
         Update: {
           activities_booked?: boolean
+          booking_reference?: string | null
           booking_status?: string
           created_at?: string
           flights_booked?: boolean

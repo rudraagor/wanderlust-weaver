@@ -12,6 +12,7 @@ export interface BookedTrip {
   activities_booked: boolean;
   booking_status: string;
   is_private: boolean;
+  booking_reference: string | null;
   created_at: string;
   updated_at: string;
   itinerary?: Itinerary;

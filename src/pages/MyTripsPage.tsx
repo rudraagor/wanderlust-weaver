@@ -124,10 +124,16 @@ export default function MyTripsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-end gap-2">
                       <Badge variant={trip.booking_status === 'booked' ? 'default' : 'secondary'}>
                         {trip.booking_status}
                       </Badge>
+                      {trip.booking_reference && (
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">Booking Ref</p>
+                          <p className="font-mono text-sm font-semibold text-primary">{trip.booking_reference}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
 

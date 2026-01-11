@@ -31,6 +31,7 @@ interface BookingDialogProps {
   activities: BookingItem[];
   totalCost: number;
   destinationName: string;
+  onConfirmBooking?: (data: { flights: string[]; hotels: string[]; activities: string[] }) => Promise<void>;
 }
 
 type BookingStep = 'flights' | 'hotels' | 'activities' | 'payment' | 'confirmation' | 'success';
@@ -43,6 +44,7 @@ export function BookingDialog({
   activities,
   totalCost,
   destinationName,
+  onConfirmBooking,
 }: BookingDialogProps) {
   const [currentStep, setCurrentStep] = useState<BookingStep>('flights');
   const [selectedFlights, setSelectedFlights] = useState<string[]>(flights.map(f => f.id));
@@ -82,10 +84,20 @@ export function BookingDialog({
 
   const handleConfirmBooking = async () => {
     setIsProcessing(true);
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsProcessing(false);
-    setCurrentStep('success');
+    try {
+      if (onConfirmBooking) {
+        await onConfirmBooking({
+          flights: selectedFlights,
+          hotels: selectedHotels,
+          activities: selectedActivities,
+        });
+      }
+      setCurrentStep('success');
+    } catch (error) {
+      console.error('Booking failed:', error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleClose = () => {
