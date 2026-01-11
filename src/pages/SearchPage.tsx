@@ -29,8 +29,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Layout } from '@/components/layout/Layout';
-import { countries, activityTypes, foodPreferences } from '@/data/mockData';
+import { countries, activityTypes, foodPreferences, sourceCities } from '@/data/mockData';
 import { useNavigate } from 'react-router-dom';
+import { Plane } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Budget presets
@@ -46,6 +47,7 @@ export default function SearchPage() {
   const [budgetPreset, setBudgetPreset] = useState<string>('Mid-Range');
   const [customBudget, setCustomBudget] = useState<[number, number]>([1000, 5000]);
   const [useCustomBudget, setUseCustomBudget] = useState(false);
+  const [sourceCity, setSourceCity] = useState('');
   const [country, setCountry] = useState('');
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
@@ -85,6 +87,7 @@ export default function SearchPage() {
     // Save filters to localStorage and navigate to generated plan
     const filters = {
       budget: currentBudget,
+      sourceCity,
       country,
       dateFrom: dateFrom?.toISOString(),
       dateTo: dateTo?.toISOString(),
@@ -230,6 +233,36 @@ export default function SearchPage() {
                 )}
               </motion.div>
             </div>
+
+            {/* Source City (Departure) */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="p-6 rounded-2xl bg-card shadow-travel"
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                  <Plane className="w-5 h-5 text-secondary-foreground" />
+                </div>
+                <Label className="text-lg font-semibold">Departure City</Label>
+              </div>
+              <Select value={sourceCity} onValueChange={setSourceCity}>
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="Where are you flying from?" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {sourceCities.map((city) => (
+                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {sourceCity && (
+                <div className="mt-3 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+                  Flights will be searched from {sourceCity}
+                </div>
+              )}
+            </motion.div>
 
             {/* Dates */}
             <motion.div 

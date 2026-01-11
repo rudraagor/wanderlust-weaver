@@ -72,6 +72,116 @@ export const destinations: Destination[] = [
     tags: ['Beach', 'Culture', 'Nature'],
     duration: '7-10 days',
     description: 'Find your zen among rice terraces, temples, and pristine beaches.'
+  },
+  {
+    id: '7',
+    name: 'Dubai',
+    country: 'United Arab Emirates',
+    image: santorini,
+    rating: 4.7,
+    budget: 'luxury',
+    tags: ['City', 'Shopping', 'Adventure'],
+    duration: '4-6 days',
+    description: 'Experience futuristic architecture, luxury shopping, and desert adventures.'
+  },
+  {
+    id: '8',
+    name: 'Barcelona',
+    country: 'Spain',
+    image: paris,
+    rating: 4.8,
+    budget: 'mid-range',
+    tags: ['City', 'Beach', 'Art'],
+    duration: '4-6 days',
+    description: 'Discover Gaudí masterpieces, vibrant nightlife, and Mediterranean beaches.'
+  },
+  {
+    id: '9',
+    name: 'Kyoto',
+    country: 'Japan',
+    image: tokyo,
+    rating: 4.9,
+    budget: 'mid-range',
+    tags: ['Culture', 'History', 'Nature'],
+    duration: '4-5 days',
+    description: 'Step back in time with ancient temples, geisha districts, and zen gardens.'
+  },
+  {
+    id: '10',
+    name: 'Iceland',
+    country: 'Iceland',
+    image: maldives,
+    rating: 4.8,
+    budget: 'mid-range',
+    tags: ['Nature', 'Adventure', 'Wildlife'],
+    duration: '7-10 days',
+    description: 'Witness the Northern Lights, geysers, and dramatic volcanic landscapes.'
+  },
+  {
+    id: '11',
+    name: 'Sydney',
+    country: 'Australia',
+    image: bali,
+    rating: 4.7,
+    budget: 'mid-range',
+    tags: ['City', 'Beach', 'Culture'],
+    duration: '5-7 days',
+    description: 'Explore the iconic Opera House, Harbour Bridge, and stunning beaches.'
+  },
+  {
+    id: '12',
+    name: 'New York',
+    country: 'USA',
+    image: paris,
+    rating: 4.8,
+    budget: 'mid-range',
+    tags: ['City', 'Culture', 'Shopping'],
+    duration: '5-7 days',
+    description: 'The city that never sleeps - Times Square, Central Park, and world-class dining.'
+  },
+  {
+    id: '13',
+    name: 'Cappadocia',
+    country: 'Turkey',
+    image: machuPicchu,
+    rating: 4.9,
+    budget: 'mid-range',
+    tags: ['Adventure', 'History', 'Nature'],
+    duration: '3-4 days',
+    description: 'Float over fairy chimneys in a hot air balloon at sunrise.'
+  },
+  {
+    id: '14',
+    name: 'Marrakech',
+    country: 'Morocco',
+    image: santorini,
+    rating: 4.6,
+    budget: 'budget',
+    tags: ['Culture', 'Shopping', 'Food'],
+    duration: '4-5 days',
+    description: 'Get lost in the vibrant souks, riads, and rich Moroccan culture.'
+  },
+  {
+    id: '15',
+    name: 'Swiss Alps',
+    country: 'Switzerland',
+    image: machuPicchu,
+    rating: 4.9,
+    budget: 'luxury',
+    tags: ['Nature', 'Adventure', 'Relaxation'],
+    duration: '5-7 days',
+    description: 'Ski pristine slopes, hike alpine trails, and enjoy chocolate and cheese.'
+  },
+  {
+    id: '16',
+    name: 'Amalfi Coast',
+    country: 'Italy',
+    image: santorini,
+    rating: 4.8,
+    budget: 'luxury',
+    tags: ['Beach', 'Romance', 'Food'],
+    duration: '5-7 days',
+    description: 'Drive the dramatic coastline and enjoy Italian cuisine with sea views.'
   }
 ];
 
@@ -190,7 +300,19 @@ export const countries = [
   'Costa Rica', 'Iceland', 'Norway', 'Sweden', 'Finland', 'Denmark',
   'Netherlands', 'Belgium', 'Austria', 'Czech Republic', 'Croatia', 'Ireland',
   'United Arab Emirates', 'Qatar', 'Oman', 'Jordan', 'Israel',
-  'South Korea', 'Taiwan', 'Hong Kong', 'Macau', 'Sri Lanka', 'Bhutan'
+  'South Korea', 'Taiwan', 'Hong Kong', 'Macau', 'Sri Lanka', 'Bhutan',
+  'Cuba', 'Jamaica', 'Dominican Republic', 'Bahamas', 'Puerto Rico',
+  'Monaco', 'Luxembourg', 'Malta', 'Cyprus', 'Slovenia'
+];
+
+// Source cities for departure
+export const sourceCities = [
+  'New York (JFK)', 'Los Angeles (LAX)', 'Chicago (ORD)', 'San Francisco (SFO)', 
+  'Miami (MIA)', 'Dallas (DFW)', 'Houston (IAH)', 'Seattle (SEA)', 'Boston (BOS)',
+  'Atlanta (ATL)', 'Denver (DEN)', 'Washington DC (IAD)', 'Phoenix (PHX)',
+  'London (LHR)', 'Paris (CDG)', 'Dubai (DXB)', 'Singapore (SIN)', 'Hong Kong (HKG)',
+  'Tokyo (NRT)', 'Sydney (SYD)', 'Toronto (YYZ)', 'Mumbai (BOM)', 'Delhi (DEL)',
+  'Frankfurt (FRA)', 'Amsterdam (AMS)', 'Madrid (MAD)', 'Rome (FCO)', 'Bangkok (BKK)'
 ];
 
 export const activityTypes = [
