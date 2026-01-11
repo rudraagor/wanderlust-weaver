@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, Calendar, MapPin, Clock, Star, 
   Plane, Hotel, Camera, Utensils, DollarSign,
-  ChevronDown, ChevronUp, Edit2
+  ChevronDown, ChevronUp, Edit2, Loader2, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,10 @@ import { Layout } from '@/components/layout/Layout';
 import { destinations } from '@/data/mockData';
 import { getPlaceById } from '@/data/placeDetails';
 import { BookingDialog } from '@/components/booking/BookingDialog';
-
+import { useAuth } from '@/contexts/AuthContext';
+import { useBookTrip } from '@/hooks/useBookedTrips';
+import { useCreateItinerary } from '@/hooks/useItineraries';
+import { useToast } from '@/hooks/use-toast';
 // Mock itinerary data
 const mockItinerary = {
   flights: [
@@ -88,8 +91,15 @@ export default function TravelPlanPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [expandedDays, setExpandedDays] = useState<number[]>([1, 2, 3]);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedItinerary, setGeneratedItinerary] = useState<any>(null);
+  
+  const bookTrip = useBookTrip();
+  const createItinerary = useCreateItinerary();
 
   // Check if this is a generated trip
   const generatedState = location.state as { 
@@ -99,13 +109,18 @@ export default function TravelPlanPage() {
     isCustom?: boolean;
   } | null;
 
-  const isGeneratedTrip = location.pathname === '/plan/generated' && generatedState;
-  
+  // Check if this is an AI generated trip from search
+  const searchFilters = location.pathname === '/plan/generated' && !generatedState 
+    ? JSON.parse(localStorage.getItem('searchFilters') || 'null')
+    : null;
+
+  const isGeneratedTrip = location.pathname === '/plan/generated' && (generatedState || searchFilters);
+
   // Get destination data
   let destination;
   let itinerary = mockItinerary;
   
-  if (isGeneratedTrip && generatedState) {
+  if (generatedState) {
     const placeData = getPlaceById(generatedState.placeId || '');
     if (placeData) {
       destination = {
@@ -122,6 +137,67 @@ export default function TravelPlanPage() {
     } else {
       destination = destinations[0];
     }
+  } else if (searchFilters) {
+    // AI Generated trip from search page
+    destination = {
+      id: 'ai-generated',
+      name: searchFilters.country || 'Your Destination',
+      country: searchFilters.country || 'World',
+      image: destinations[0]?.image || '/placeholder.svg',
+      rating: 4.9,
+      budget: searchFilters.budget ? `$${searchFilters.budget[0]} - $${searchFilters.budget[1]}` : '$$$',
+    };
+    
+    // Generate itinerary based on search filters
+    const days = searchFilters.dateFrom && searchFilters.dateTo 
+      ? Math.ceil((new Date(searchFilters.dateTo).getTime() - new Date(searchFilters.dateFrom).getTime()) / (1000 * 60 * 60 * 24))
+      : 5;
+    
+    const generatedActivities = [];
+    for (let i = 1; i <= days; i++) {
+      const dayItems = [];
+      // Morning activity based on preferences
+      if (searchFilters.activities?.includes('Cultural Experiences')) {
+        dayItems.push({ id: `ai-${i}-1`, name: 'Cultural Walking Tour', time: '9:00 AM', category: 'Culture', price: 45 });
+      } else if (searchFilters.activities?.includes('Adventure Sports')) {
+        dayItems.push({ id: `ai-${i}-1`, name: 'Adventure Excursion', time: '9:00 AM', category: 'Adventure', price: 85 });
+      } else {
+        dayItems.push({ id: `ai-${i}-1`, name: 'City Exploration', time: '9:00 AM', category: 'Sightseeing', price: 25 });
+      }
+      
+      // Afternoon activity
+      if (searchFilters.activities?.includes('Beach Activities')) {
+        dayItems.push({ id: `ai-${i}-2`, name: 'Beach & Water Sports', time: '2:00 PM', category: 'Beach', price: 60 });
+      } else if (searchFilters.activities?.includes('Nature & Wildlife')) {
+        dayItems.push({ id: `ai-${i}-2`, name: 'Nature Reserve Visit', time: '2:00 PM', category: 'Nature', price: 50 });
+      } else {
+        dayItems.push({ id: `ai-${i}-2`, name: 'Local Attractions', time: '2:00 PM', category: 'Sightseeing', price: 30 });
+      }
+      
+      // Dinner based on food preferences
+      const cuisineType = searchFilters.food?.[0] || 'Local';
+      dayItems.push({ id: `ai-${i}-3`, name: `${cuisineType} Cuisine Dinner`, time: '7:30 PM', category: 'Food', price: 55 });
+      
+      generatedActivities.push({ day: i, items: dayItems });
+    }
+    
+    itinerary = {
+      flights: [
+        { id: 'ai-f1', from: 'Your City', to: searchFilters.country, time: '8:00 AM', duration: '4h 30m', price: 550 },
+        { id: 'ai-f2', from: searchFilters.country, to: 'Your City', time: '6:00 PM', duration: '4h 30m', price: 550 },
+      ],
+      hotels: [
+        { 
+          id: 'ai-h1', 
+          name: `${searchFilters.hotelRating || 4}★ Premium Resort`, 
+          rating: searchFilters.hotelRating || 4, 
+          pricePerNight: searchFilters.hotelRating === 5 ? 350 : searchFilters.hotelRating === 4 ? 200 : 100, 
+          nights: days, 
+          image: '' 
+        },
+      ],
+      activities: generatedActivities,
+    };
   } else {
     destination = destinations.find(d => d.id === id) || destinations[0];
   }
@@ -162,6 +238,86 @@ export default function TravelPlanPage() {
       details: `Day ${day.day} • ${item.time}`,
     }))
   );
+
+  const handleConfirmBooking = async () => {
+    if (!user) {
+      toast({ title: 'Please sign in', description: 'You need to be signed in to book a trip.', variant: 'destructive' });
+      navigate('/auth');
+      return;
+    }
+
+    try {
+      // First create the itinerary if it's a generated one
+      let itineraryId = id;
+      
+      if (isGeneratedTrip) {
+        const newItinerary = await createItinerary.mutateAsync({
+          title: `Trip to ${destination.name}`,
+          destination: destination.name,
+          country: destination.country,
+          cover_image: destination.image,
+          nights: itinerary.activities.length,
+          budget: typeof destination.budget === 'string' ? destination.budget : `$${totalCost}`,
+          is_public: false,
+          is_ai_generated: true,
+          total_cost: totalCost,
+          flights: itinerary.flights.map(f => ({
+            departure_airport: f.from,
+            arrival_airport: f.to,
+            departure_time: f.time,
+            arrival_time: null,
+            airline: null,
+            flight_number: null,
+            price: f.price,
+          })),
+          hotels: itinerary.hotels.map(h => ({
+            name: h.name,
+            rating: h.rating,
+            price_per_night: h.pricePerNight,
+            check_in: null,
+            check_out: null,
+            image_url: h.image || null,
+          })),
+          days: itinerary.activities.map(day => ({
+            day_number: day.day,
+            activities: day.items.map(item => ({
+              name: item.name,
+              time: item.time,
+              category: item.category,
+              price: item.price,
+              duration: null,
+              description: null,
+            })),
+          })),
+        });
+        itineraryId = newItinerary.id;
+      }
+
+      if (!itineraryId) {
+        throw new Error('No itinerary ID available');
+      }
+
+      // Book the trip
+      await bookTrip.mutateAsync({
+        itineraryId,
+        flightsBooked: bookingFlights.length > 0,
+        hotelsBooked: bookingHotels.length > 0,
+        activitiesBooked: bookingActivities.length > 0,
+      });
+
+      toast({ 
+        title: 'Trip Booked!', 
+        description: 'Your trip has been booked successfully. View it in My Trips.',
+      });
+    } catch (error: any) {
+      toast({ 
+        title: 'Booking Failed', 
+        description: error.message || 'Failed to book trip', 
+        variant: 'destructive' 
+      });
+      throw error;
+    }
+  };
 
   return (
     <Layout>
@@ -407,6 +563,7 @@ export default function TravelPlanPage() {
         activities={bookingActivities}
         totalCost={totalCost}
         destinationName={destination.name}
+        onConfirmBooking={handleConfirmBooking}
       />
     </Layout>
   );
