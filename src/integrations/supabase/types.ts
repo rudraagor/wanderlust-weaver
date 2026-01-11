@@ -508,6 +508,188 @@ export type Database = {
         }
         Relationships: []
       }
+      place_events: {
+        Row: {
+          created_at: string
+          events: string[]
+          id: string
+          month: string
+          place_id: string
+        }
+        Insert: {
+          created_at?: string
+          events?: string[]
+          id?: string
+          month: string
+          place_id: string
+        }
+        Update: {
+          created_at?: string
+          events?: string[]
+          id?: string
+          month?: string
+          place_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_events_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      place_rules: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          id: string
+          place_id: string
+          rule: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          place_id: string
+          rule: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          place_id?: string
+          rule?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_rules_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      place_tips: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          id: string
+          place_id: string
+          tip: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          place_id: string
+          tip: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          place_id?: string
+          tip?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_tips_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      places: {
+        Row: {
+          best_time_description: string | null
+          best_time_period: string | null
+          best_time_weather: string | null
+          country: string
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          image_url: string | null
+          is_featured: boolean
+          long_description: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          best_time_description?: string | null
+          best_time_period?: string | null
+          best_time_weather?: string | null
+          country: string
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean
+          long_description?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          best_time_description?: string | null
+          best_time_period?: string | null
+          best_time_weather?: string | null
+          country?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean
+          long_description?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      places_to_visit: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          name: string
+          place_id: string
+          type: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          name: string
+          place_id: string
+          type?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          name?: string
+          place_id?: string
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "places_to_visit_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
