@@ -1,20 +1,27 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   MapPin, Calendar, BookOpen, AlertCircle, Lightbulb, 
-  Clock, ArrowRight, ChevronDown
+  Clock, ArrowRight, ChevronDown, Sparkles, Map
 } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { getPlaceById } from '@/data/placeDetails';
+import { getPlaceById, PlaceToVisit } from '@/data/placeDetails';
 import { Footer } from '@/components/layout/Footer';
+import { TripGenerator } from '@/components/trip/TripGenerator';
 
 export default function PlaceDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const place = getPlaceById(id || '');
+  const [selectedPlaces, setSelectedPlaces] = useState<PlaceToVisit[]>([]);
+  const [showTripGenerator, setShowTripGenerator] = useState(false);
+  const [isCustomTrip, setIsCustomTrip] = useState(false);
 
   if (!place) {
     return (
@@ -28,6 +35,30 @@ export default function PlaceDetailsPage() {
       </Layout>
     );
   }
+
+  const togglePlaceSelection = (placeToVisit: PlaceToVisit) => {
+    setSelectedPlaces(prev => {
+      const exists = prev.find(p => p.name === placeToVisit.name);
+      if (exists) {
+        return prev.filter(p => p.name !== placeToVisit.name);
+      }
+      return [...prev, placeToVisit];
+    });
+  };
+
+  const isPlaceSelected = (placeToVisit: PlaceToVisit) => {
+    return selectedPlaces.some(p => p.name === placeToVisit.name);
+  };
+
+  const handleGenerateDefault = () => {
+    setIsCustomTrip(false);
+    setShowTripGenerator(true);
+  };
+
+  const handleGenerateCustom = () => {
+    setIsCustomTrip(true);
+    setShowTripGenerator(true);
+  };
 
   return (
     <Layout showFooter={false}>
@@ -76,7 +107,7 @@ export default function PlaceDetailsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Places to Visit */}
+            {/* Places to Visit with Checkboxes */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -84,23 +115,43 @@ export default function PlaceDetailsPage() {
             >
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-primary" />
-                    Places to Visit
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-primary" />
+                      Places to Visit
+                    </span>
+                    {selectedPlaces.length > 0 && (
+                      <Badge variant="secondary">
+                        {selectedPlaces.length} selected
+                      </Badge>
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {place.placesToVisit.map((placeToVisit, index) => (
                     <div
                       key={index}
-                      className="flex items-start gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                      className={`flex items-start gap-4 p-4 rounded-lg transition-colors cursor-pointer ${
+                        isPlaceSelected(placeToVisit) 
+                          ? 'bg-primary/10 border border-primary/30' 
+                          : 'bg-muted/50 hover:bg-muted'
+                      }`}
+                      onClick={() => togglePlaceSelection(placeToVisit)}
                     >
-                      <div className="w-10 h-10 rounded-full gradient-sky flex items-center justify-center text-white font-bold shrink-0">
-                        {index + 1}
-                      </div>
-                      <div>
+                      <Checkbox 
+                        id={`place-${index}`}
+                        checked={isPlaceSelected(placeToVisit)}
+                        onCheckedChange={() => togglePlaceSelection(placeToVisit)}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold">{placeToVisit.name}</h4>
+                          <Label 
+                            htmlFor={`place-${index}`} 
+                            className="font-semibold cursor-pointer"
+                          >
+                            {placeToVisit.name}
+                          </Label>
                           <Badge variant="outline" className="text-xs">
                             {placeToVisit.type}
                           </Badge>
@@ -238,12 +289,41 @@ export default function PlaceDetailsPage() {
                     </p>
                   </div>
 
-                  <Link to={`/place/${id}/trips`} className="block">
-                    <Button className="w-full gradient-sunset text-white" size="lg">
-                      <span>View Trips</span>
-                      <ArrowRight className="w-4 h-4 ml-2" />
+                  {/* Trip Generation Buttons */}
+                  <div className="space-y-3 pt-4 border-t">
+                    <Link to={`/place/${id}/trips`} className="block">
+                      <Button variant="outline" className="w-full" size="lg">
+                        <Map className="w-4 h-4 mr-2" />
+                        View Existing Trips
+                      </Button>
+                    </Link>
+
+                    <Button 
+                      onClick={handleGenerateDefault}
+                      className="w-full gradient-sky text-white" 
+                      size="lg"
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate Default Trip
                     </Button>
-                  </Link>
+
+                    <Button 
+                      onClick={handleGenerateCustom}
+                      className="w-full gradient-sunset text-white" 
+                      size="lg"
+                      disabled={selectedPlaces.length === 0}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate Custom Trip
+                      {selectedPlaces.length > 0 && ` (${selectedPlaces.length})`}
+                    </Button>
+
+                    {selectedPlaces.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        Select places above to enable custom trip generation
+                      </p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -252,6 +332,15 @@ export default function PlaceDetailsPage() {
       </div>
 
       <Footer />
+
+      <TripGenerator
+        open={showTripGenerator}
+        onOpenChange={setShowTripGenerator}
+        placeName={place.name}
+        placeId={place.id}
+        selectedPlaces={selectedPlaces}
+        isCustom={isCustomTrip}
+      />
     </Layout>
   );
 }
