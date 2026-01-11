@@ -1,6 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+// Import images to get bundled URLs
+import santoriniImg from '@/assets/santorini.jpg';
+import tokyoImg from '@/assets/tokyo.jpg';
+import machuPicchuImg from '@/assets/machu-picchu.jpg';
+import maldivesImg from '@/assets/maldives.jpg';
+import parisImg from '@/assets/paris.jpg';
+import baliImg from '@/assets/bali.jpg';
+
+// Image map for place names to bundled assets
+const placeImageMap: Record<string, string> = {
+  'santorini': santoriniImg,
+  'tokyo': tokyoImg,
+  'machu picchu': machuPicchuImg,
+  'maldives': maldivesImg,
+  'paris': parisImg,
+  'bali': baliImg,
+};
+
 export interface PlaceToVisit {
   id: string;
   name: string;
@@ -141,17 +159,81 @@ export function usePlaceDetails(placeId: string | undefined) {
 
 // Get image URL for a place (handles both local assets and URLs)
 export function getPlaceImageUrl(imageUrl: string | null, placeName: string): string {
-  if (!imageUrl) {
-    // Fallback to local assets based on place name
-    const nameToAsset: Record<string, string> = {
-      'santorini': '/src/assets/santorini.jpg',
-      'tokyo': '/src/assets/tokyo.jpg',
-      'machu picchu': '/src/assets/machu-picchu.jpg',
-      'maldives': '/src/assets/maldives.jpg',
-      'paris': '/src/assets/paris.jpg',
-      'bali': '/src/assets/bali.jpg',
-    };
-    return nameToAsset[placeName.toLowerCase()] || '/placeholder.svg';
+  // First, check if it's a bundled Vite asset or old-style path that needs resolution
+  const lowerName = placeName.toLowerCase();
+  
+  // If imageUrl contains Vite bundled paths or src/assets paths, use the imported images instead
+  if (!imageUrl || 
+      imageUrl.startsWith('/assets/') || 
+      imageUrl.startsWith('/src/assets/') ||
+      imageUrl.startsWith('/santorini') ||
+      imageUrl.startsWith('/tokyo') ||
+      imageUrl.startsWith('/machu-picchu') ||
+      imageUrl.startsWith('/maldives') ||
+      imageUrl.startsWith('/paris') ||
+      imageUrl.startsWith('/bali')) {
+    return placeImageMap[lowerName] || '/placeholder.svg';
   }
+  
+  // If it's an external URL (http/https), use it directly
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  
+  // For any other case, try to match by name
+  return placeImageMap[lowerName] || imageUrl || '/placeholder.svg';
+}
+
+// Resolve any image URL to a proper displayable URL
+export function resolveImageUrl(imageUrl: string | null | undefined, fallbackPlaceName?: string): string {
+  if (!imageUrl) {
+    // Try to resolve by place name
+    if (fallbackPlaceName) {
+      const lowerName = fallbackPlaceName.toLowerCase();
+      return placeImageMap[lowerName] || '/placeholder.svg';
+    }
+    return '/placeholder.svg';
+  }
+  
+  // If it's already a valid URL, return it
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  
+  // If it's a Supabase storage URL pattern, return it
+  if (imageUrl.includes('supabase') || imageUrl.includes('storage')) {
+    return imageUrl;
+  }
+  
+  // Check for Vite bundled paths or src/assets paths - these need resolution
+  if (imageUrl.startsWith('/assets/') || imageUrl.startsWith('/src/assets/')) {
+    // Try to extract the place name from the path
+    const pathParts = imageUrl.toLowerCase().split('/');
+    const fileName = pathParts[pathParts.length - 1];
+    
+    // Map file names to places
+    if (fileName.includes('santorini')) return placeImageMap['santorini'];
+    if (fileName.includes('tokyo')) return placeImageMap['tokyo'];
+    if (fileName.includes('machu-picchu')) return placeImageMap['machu picchu'];
+    if (fileName.includes('maldives')) return placeImageMap['maldives'];
+    if (fileName.includes('paris')) return placeImageMap['paris'];
+    if (fileName.includes('bali')) return placeImageMap['bali'];
+    
+    // If we have a fallback name, use it
+    if (fallbackPlaceName) {
+      const lowerName = fallbackPlaceName.toLowerCase();
+      return placeImageMap[lowerName] || '/placeholder.svg';
+    }
+    
+    return '/placeholder.svg';
+  }
+  
+  // For simple paths like /paris.jpg, try to resolve
+  const simpleMatch = imageUrl.match(/\/([a-z-]+)\.(jpg|png|jpeg|webp)/i);
+  if (simpleMatch) {
+    const placeName = simpleMatch[1].toLowerCase().replace(/-/g, ' ');
+    return placeImageMap[placeName] || imageUrl;
+  }
+  
   return imageUrl;
 }

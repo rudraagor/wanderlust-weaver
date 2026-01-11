@@ -17,6 +17,7 @@ import { useBookTrip } from '@/hooks/useBookedTrips';
 import { useCreateItinerary, useItinerary } from '@/hooks/useItineraries';
 import { useCreateExpense } from '@/hooks/useExpenses';
 import { useToast } from '@/hooks/use-toast';
+import { resolveImageUrl } from '@/hooks/usePlaces';
 
 // Flight and hotel interfaces with extended properties
 interface Flight {
@@ -173,7 +174,7 @@ export default function TravelPlanPage() {
       id: dbItinerary.id,
       name: dbItinerary.destination,
       country: dbItinerary.country || '',
-      image: dbItinerary.cover_image || '/placeholder.svg',
+      image: resolveImageUrl(dbItinerary.cover_image, dbItinerary.destination),
       rating: 4.8,
       budget: dbItinerary.budget || '$$$',
     };

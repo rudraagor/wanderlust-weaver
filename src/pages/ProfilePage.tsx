@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProfile, useUpdateProfile, useUploadAvatar } from '@/hooks/useProfile';
 import { useFollowers, useFollowing, useFollowUser, useUnfollowUser, useConnections } from '@/hooks/useConnections';
 import { useSavedItineraries } from '@/hooks/useItineraries';
+import { resolveImageUrl } from '@/hooks/usePlaces';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import {
@@ -445,7 +446,7 @@ export default function ProfilePage() {
                       {/* Cover Image with Overlay */}
                       <div className="relative aspect-[4/3] overflow-hidden">
                         <img 
-                          src={saved.itinerary?.cover_image || '/placeholder.svg'} 
+                          src={resolveImageUrl(saved.itinerary?.cover_image, saved.itinerary?.destination)} 
                           alt={saved.itinerary?.title}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         />
