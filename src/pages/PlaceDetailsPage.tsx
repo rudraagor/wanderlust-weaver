@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  MapPin, Calendar, BookOpen, AlertCircle, Lightbulb, 
-  Clock, ArrowRight, ChevronDown, Sparkles, Map
+  MapPin, Calendar, AlertCircle, Lightbulb, 
+  Clock, Sparkles, Map, Loader2
 } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -12,18 +12,46 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { getPlaceById, PlaceToVisit } from '@/data/placeDetails';
 import { Footer } from '@/components/layout/Footer';
 import { TripGenerator } from '@/components/trip/TripGenerator';
+import { usePlaceDetails, PlaceToVisit, getPlaceImageUrl } from '@/hooks/usePlaces';
+
+// Import local images as fallback
+import santorini from '@/assets/santorini.jpg';
+import tokyo from '@/assets/tokyo.jpg';
+import machuPicchu from '@/assets/machu-picchu.jpg';
+import maldives from '@/assets/maldives.jpg';
+import paris from '@/assets/paris.jpg';
+import bali from '@/assets/bali.jpg';
+
+const imageMap: Record<string, string> = {
+  'santorini': santorini,
+  'tokyo': tokyo,
+  'machu picchu': machuPicchu,
+  'maldives': maldives,
+  'paris': paris,
+  'bali': bali,
+};
 
 export default function PlaceDetailsPage() {
   const { id } = useParams<{ id: string }>();
-  const place = getPlaceById(id || '');
+  const { data: place, isLoading, error } = usePlaceDetails(id);
   const [selectedPlaces, setSelectedPlaces] = useState<PlaceToVisit[]>([]);
   const [showTripGenerator, setShowTripGenerator] = useState(false);
   const [isCustomTrip, setIsCustomTrip] = useState(false);
 
-  if (!place) {
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-20 text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading place details...</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !place) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-20 text-center">
@@ -36,18 +64,20 @@ export default function PlaceDetailsPage() {
     );
   }
 
+  const placeImage = imageMap[place.name.toLowerCase()] || place.image_url || '/placeholder.svg';
+
   const togglePlaceSelection = (placeToVisit: PlaceToVisit) => {
     setSelectedPlaces(prev => {
-      const exists = prev.find(p => p.name === placeToVisit.name);
+      const exists = prev.find(p => p.id === placeToVisit.id);
       if (exists) {
-        return prev.filter(p => p.name !== placeToVisit.name);
+        return prev.filter(p => p.id !== placeToVisit.id);
       }
       return [...prev, placeToVisit];
     });
   };
 
   const isPlaceSelected = (placeToVisit: PlaceToVisit) => {
-    return selectedPlaces.some(p => p.name === placeToVisit.name);
+    return selectedPlaces.some(p => p.id === placeToVisit.id);
   };
 
   const handleGenerateDefault = () => {
@@ -65,7 +95,7 @@ export default function PlaceDetailsPage() {
       {/* Hero Banner */}
       <div className="relative h-[50vh] min-h-[400px]">
         <img
-          src={place.image}
+          src={placeImage}
           alt={place.name}
           className="w-full h-full object-cover"
         />
@@ -100,7 +130,7 @@ export default function PlaceDetailsPage() {
           className="mb-12"
         >
           <p className="text-lg text-muted-foreground leading-relaxed">
-            {place.longDescription}
+            {place.long_description}
           </p>
         </motion.div>
 
@@ -128,9 +158,9 @@ export default function PlaceDetailsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {place.placesToVisit.map((placeToVisit, index) => (
+                  {place.places_to_visit.map((placeToVisit, index) => (
                     <div
-                      key={index}
+                      key={placeToVisit.id}
                       className={`flex items-start gap-4 p-4 rounded-lg transition-colors cursor-pointer ${
                         isPlaceSelected(placeToVisit) 
                           ? 'bg-primary/10 border border-primary/30' 
@@ -139,7 +169,7 @@ export default function PlaceDetailsPage() {
                       onClick={() => togglePlaceSelection(placeToVisit)}
                     >
                       <Checkbox 
-                        id={`place-${index}`}
+                        id={`place-${placeToVisit.id}`}
                         checked={isPlaceSelected(placeToVisit)}
                         onCheckedChange={() => togglePlaceSelection(placeToVisit)}
                         className="mt-1"
@@ -147,14 +177,16 @@ export default function PlaceDetailsPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <Label 
-                            htmlFor={`place-${index}`} 
+                            htmlFor={`place-${placeToVisit.id}`} 
                             className="font-semibold cursor-pointer"
                           >
                             {placeToVisit.name}
                           </Label>
-                          <Badge variant="outline" className="text-xs">
-                            {placeToVisit.type}
-                          </Badge>
+                          {placeToVisit.type && (
+                            <Badge variant="outline" className="text-xs">
+                              {placeToVisit.type}
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-muted-foreground text-sm">
                           {placeToVisit.description}
@@ -181,8 +213,8 @@ export default function PlaceDetailsPage() {
                 </CardHeader>
                 <CardContent>
                   <Accordion type="single" collapsible className="w-full">
-                    {place.majorEvents.map((event, index) => (
-                      <AccordionItem key={index} value={`event-${index}`}>
+                    {place.place_events.map((event, index) => (
+                      <AccordionItem key={event.id} value={`event-${index}`}>
                         <AccordionTrigger className="text-left">
                           <span className="font-medium">{event.month}</span>
                         </AccordionTrigger>
@@ -218,12 +250,12 @@ export default function PlaceDetailsPage() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
-                    {place.rulesAndRegulations.map((rule, index) => (
-                      <li key={index} className="flex items-start gap-3">
+                    {place.place_rules.map((rule, index) => (
+                      <li key={rule.id} className="flex items-start gap-3">
                         <div className="w-6 h-6 rounded-full bg-destructive/10 flex items-center justify-center shrink-0 mt-0.5">
                           <span className="text-destructive text-xs font-bold">{index + 1}</span>
                         </div>
-                        <span className="text-muted-foreground">{rule}</span>
+                        <span className="text-muted-foreground">{rule.rule}</span>
                       </li>
                     ))}
                   </ul>
@@ -246,12 +278,12 @@ export default function PlaceDetailsPage() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
-                    {place.travelTips.map((tip, index) => (
-                      <li key={index} className="flex items-start gap-3">
+                    {place.place_tips.map((tip, index) => (
+                      <li key={tip.id} className="flex items-start gap-3">
                         <div className="w-6 h-6 rounded-full bg-yellow-500/10 flex items-center justify-center shrink-0 mt-0.5">
                           <Lightbulb className="w-3 h-3 text-yellow-500" />
                         </div>
-                        <span className="text-muted-foreground">{tip}</span>
+                        <span className="text-muted-foreground">{tip.tip}</span>
                       </li>
                     ))}
                   </ul>
@@ -277,19 +309,19 @@ export default function PlaceDetailsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="p-4 rounded-lg gradient-sky text-white">
-                    <p className="font-bold text-lg">{place.bestTimeToVisit.period}</p>
+                    <p className="font-bold text-lg">{place.best_time_period}</p>
                   </div>
                   <p className="text-muted-foreground text-sm">
-                    {place.bestTimeToVisit.description}
+                    {place.best_time_description}
                   </p>
                   <div className="p-3 rounded-lg bg-muted">
                     <p className="text-sm">
                       <span className="font-medium">Weather: </span>
-                      {place.bestTimeToVisit.weather}
+                      {place.best_time_weather}
                     </p>
                   </div>
 
-                  {/* Trip Generation Buttons */}
+                  {/* Trip Generation Buttons - Side by Side */}
                   <div className="space-y-3 pt-4 border-t">
                     <Link to={`/place/${id}/trips`} className="block">
                       <Button variant="outline" className="w-full" size="lg">
@@ -298,29 +330,31 @@ export default function PlaceDetailsPage() {
                       </Button>
                     </Link>
 
-                    <Button 
-                      onClick={handleGenerateDefault}
-                      className="w-full gradient-sky text-white" 
-                      size="lg"
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Generate Default Trip
-                    </Button>
+                    {/* Side by side buttons */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button 
+                        onClick={handleGenerateDefault}
+                        className="gradient-sky text-white" 
+                        size="lg"
+                      >
+                        <Sparkles className="w-4 h-4 mr-1" />
+                        Default
+                      </Button>
 
-                    <Button 
-                      onClick={handleGenerateCustom}
-                      className="w-full gradient-sunset text-white" 
-                      size="lg"
-                      disabled={selectedPlaces.length === 0}
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Generate Custom Trip
-                      {selectedPlaces.length > 0 && ` (${selectedPlaces.length})`}
-                    </Button>
+                      <Button 
+                        onClick={handleGenerateCustom}
+                        className="gradient-sunset text-white" 
+                        size="lg"
+                        disabled={selectedPlaces.length === 0}
+                      >
+                        <Sparkles className="w-4 h-4 mr-1" />
+                        Custom {selectedPlaces.length > 0 && `(${selectedPlaces.length})`}
+                      </Button>
+                    </div>
 
                     {selectedPlaces.length === 0 && (
                       <p className="text-xs text-muted-foreground text-center">
-                        Select places above to enable custom trip generation
+                        Select places above for custom trip
                       </p>
                     )}
                   </div>
@@ -338,7 +372,7 @@ export default function PlaceDetailsPage() {
         onOpenChange={setShowTripGenerator}
         placeName={place.name}
         placeId={place.id}
-        selectedPlaces={selectedPlaces}
+        selectedPlaces={selectedPlaces.map(p => ({ name: p.name, description: p.description || '', type: p.type || '' }))}
         isCustom={isCustomTrip}
       />
     </Layout>

@@ -1,20 +1,37 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, Bookmark, Star, MapPin, Loader2, Search, Filter } from 'lucide-react';
+import { Heart, Bookmark, Star, MapPin, Loader2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/layout/Layout';
 import { Footer } from '@/components/layout/Footer';
-import { destinations } from '@/data/mockData';
+import { usePlaces } from '@/hooks/usePlaces';
 import { usePublicItineraries, useLikeItinerary, useUnlikeItinerary, useSaveItinerary, useUnsaveItinerary, useSavedItineraries } from '@/hooks/useItineraries';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+// Import local images as fallback
+import santorini from '@/assets/santorini.jpg';
+import tokyo from '@/assets/tokyo.jpg';
+import machuPicchu from '@/assets/machu-picchu.jpg';
+import maldives from '@/assets/maldives.jpg';
+import paris from '@/assets/paris.jpg';
+import bali from '@/assets/bali.jpg';
+
+const imageMap: Record<string, string> = {
+  'santorini': santorini,
+  'tokyo': tokyo,
+  'machu picchu': machuPicchu,
+  'maldives': maldives,
+  'paris': paris,
+  'bali': bali,
+};
 
 export default function ExplorePage() {
   const navigate = useNavigate();
@@ -23,7 +40,8 @@ export default function ExplorePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('destinations');
   
-  const { data: itineraries, isLoading } = usePublicItineraries();
+  const { data: places, isLoading: isLoadingPlaces } = usePlaces();
+  const { data: itineraries, isLoading: isLoadingItineraries } = usePublicItineraries();
   const { data: savedItineraries } = useSavedItineraries();
   const likeItinerary = useLikeItinerary();
   const unlikeItinerary = useUnlikeItinerary();
@@ -47,6 +65,10 @@ export default function ExplorePage() {
 
   const isLiked = (itineraryId: string) => userLikes?.includes(itineraryId) || false;
   const isSaved = (itineraryId: string) => savedItineraries?.some((s: any) => s.id === itineraryId) || false;
+
+  const getPlaceImage = (place: any) => {
+    return imageMap[place.name.toLowerCase()] || place.image_url || '/placeholder.svg';
+  };
 
   const handleLike = async (e: React.MouseEvent, itineraryId: string) => {
     e.preventDefault();
@@ -88,11 +110,11 @@ export default function ExplorePage() {
     }
   };
 
-  // Filter destinations by search
-  const filteredDestinations = destinations.filter(
-    dest => dest.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            dest.country.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter places by search
+  const filteredPlaces = places?.filter(
+    place => place.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+             place.country.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
 
   // Filter itineraries by search
   const filteredItineraries = itineraries?.filter(
@@ -143,64 +165,59 @@ export default function ExplorePage() {
 
           {/* Destinations Tab */}
           <TabsContent value="destinations">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredDestinations.map((destination, index) => (
-                <motion.div
-                  key={destination.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Link to={`/place/${destination.id}`}>
-                    <Card className="group overflow-hidden hover:shadow-travel-lg transition-all duration-300 h-full">
-                      <div className="relative aspect-[3/4] overflow-hidden">
-                        <img
-                          src={destination.image}
-                          alt={destination.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-0 p-4">
-                          <div className="flex items-center gap-1 text-white/90 text-sm mb-1">
-                            <MapPin className="w-3 h-3" />
-                            <span>{destination.country}</span>
-                          </div>
-                          <h3 className="text-white font-display font-bold text-xl">
-                            {destination.name}
-                          </h3>
-                          <div className="flex items-center gap-2 mt-2">
-                            <Badge className="bg-white/20 text-white border-0">
-                              <Star className="w-3 h-3 mr-1 fill-yellow-500 text-yellow-500" />
-                              {destination.rating}
-                            </Badge>
-                            <Badge className="bg-white/20 text-white border-0">
-                              {destination.duration}
-                            </Badge>
+            {isLoadingPlaces ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredPlaces.map((place, index) => (
+                  <motion.div
+                    key={place.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <Link to={`/place/${place.id}`}>
+                      <Card className="group overflow-hidden hover:shadow-travel-lg transition-all duration-300 h-full">
+                        <div className="relative aspect-[3/4] overflow-hidden">
+                          <img
+                            src={getPlaceImage(place)}
+                            alt={place.name}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                          <div className="absolute bottom-0 left-0 right-0 p-4">
+                            <div className="flex items-center gap-1 text-white/90 text-sm mb-1">
+                              <MapPin className="w-3 h-3" />
+                              <span>{place.country}</span>
+                            </div>
+                            <h3 className="text-white font-display font-bold text-xl">
+                              {place.name}
+                            </h3>
+                            <div className="flex items-center gap-2 mt-2">
+                              <Badge className="bg-white/20 text-white border-0">
+                                {place.best_time_period || 'Year-round'}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <CardContent className="p-4">
-                        <p className="text-muted-foreground text-sm line-clamp-2">
-                          {destination.description}
-                        </p>
-                        <div className="flex flex-wrap gap-1 mt-3">
-                          {destination.tags.map((tag) => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
+                        <CardContent className="p-4">
+                          <p className="text-muted-foreground text-sm line-clamp-2">
+                            {place.description}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* Itineraries Tab */}
           <TabsContent value="itineraries">
-            {isLoading ? (
+            {isLoadingItineraries ? (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
