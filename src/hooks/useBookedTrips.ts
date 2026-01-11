@@ -57,13 +57,15 @@ export function useBookTrip() {
       flightsBooked = false, 
       hotelsBooked = false, 
       activitiesBooked = false,
-      isPrivate = false 
+      isPrivate = false,
+      plannedBudget = null
     }: { 
       itineraryId: string; 
       flightsBooked?: boolean;
       hotelsBooked?: boolean;
       activitiesBooked?: boolean;
       isPrivate?: boolean;
+      plannedBudget?: number | null;
     }) => {
       if (!user) throw new Error('Not authenticated');
 
@@ -77,6 +79,7 @@ export function useBookTrip() {
           activities_booked: activitiesBooked,
           is_private: isPrivate,
           booking_status: 'booked',
+          planned_budget: plannedBudget,
         })
         .select()
         .single();

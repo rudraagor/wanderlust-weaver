@@ -468,6 +468,7 @@ export default function ItineraryDetailsPage() {
         open={bookingDialogOpen}
         onOpenChange={setBookingDialogOpen}
         destinationName={`${itinerary?.destination}, ${itinerary?.country}`}
+        departureCity="Your City"
         flights={itinerary?.itinerary_flights?.map((f: any) => ({
           id: f.id,
           name: `${f.departure_airport} → ${f.arrival_airport}`,
@@ -496,6 +497,7 @@ export default function ItineraryDetailsPage() {
               flightsBooked: data.flights.length > 0,
               hotelsBooked: data.hotels.length > 0,
               activitiesBooked: data.activities.length > 0,
+              plannedBudget: data.plannedBudget,
             });
             toast.success('Trip booked successfully!');
             navigate('/my-trips');
