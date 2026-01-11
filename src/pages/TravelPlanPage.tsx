@@ -14,7 +14,7 @@ import { getPlaceById } from '@/data/placeDetails';
 import { BookingDialog } from '@/components/booking/BookingDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBookTrip } from '@/hooks/useBookedTrips';
-import { useCreateItinerary } from '@/hooks/useItineraries';
+import { useCreateItinerary, useItinerary } from '@/hooks/useItineraries';
 import { useCreateExpense } from '@/hooks/useExpenses';
 import { useToast } from '@/hooks/use-toast';
 
@@ -50,14 +50,14 @@ interface ActivityItem {
   price: number;
 }
 
-interface Itinerary {
+interface ItineraryData {
   flights: Flight[];
   hotels: HotelInfo[];
   activities: { day: number; items: ActivityItem[] }[];
 }
 
 // Mock itinerary data
-const mockItinerary: Itinerary = {
+const mockItinerary: ItineraryData = {
   flights: [
     { id: '1', from: 'New York (JFK)', to: 'Athens (ATH)', time: '10:30 AM', duration: '10h 30m', price: 850, airline: 'Delta', flightNumber: 'DL456' },
     { id: '2', from: 'Athens (ATH)', to: 'Santorini (JTR)', time: '2:00 PM', duration: '45m', price: 120, airline: 'Aegean', flightNumber: 'A3201' },
@@ -83,7 +83,7 @@ const mockItinerary: Itinerary = {
 };
 
 // Generate custom itinerary based on selected places
-const generateCustomItinerary = (selectedPlaces: any[], placeName: string): Itinerary => {
+const generateCustomItinerary = (selectedPlaces: any[], placeName: string): ItineraryData => {
   const days = Math.max(3, selectedPlaces.length);
   const activities = [];
   
@@ -157,11 +157,67 @@ export default function TravelPlanPage() {
 
   const isGeneratedTrip = location.pathname === '/plan/generated' && (generatedState || searchFilters);
 
+  // Check if this is an existing itinerary (UUID format)
+  const isExistingItinerary = id && id !== 'generated' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+  // Fetch existing itinerary from database
+  const { data: dbItinerary, isLoading: isLoadingItinerary } = useItinerary(isExistingItinerary ? id : undefined);
+
   // Get destination data
-  let destination;
-  let itinerary = mockItinerary;
+  let destination: { id: string; name: string; country: string; image: string; rating: number; budget: string } | undefined;
+  let itinerary: ItineraryData = mockItinerary;
   
-  if (generatedState) {
+  // If we have database data, transform it to the UI format
+  if (isExistingItinerary && dbItinerary) {
+    destination = {
+      id: dbItinerary.id,
+      name: dbItinerary.destination,
+      country: dbItinerary.country || '',
+      image: dbItinerary.cover_image || '/placeholder.svg',
+      rating: 4.8,
+      budget: dbItinerary.budget || '$$$',
+    };
+
+    // Transform database flights to UI format
+    const dbFlights = (dbItinerary.itinerary_flights || []).map((f: any) => ({
+      id: f.id,
+      from: f.departure_airport,
+      to: f.arrival_airport,
+      time: f.departure_time || '8:00 AM',
+      duration: '4h 30m',
+      price: f.price || 0,
+      airline: f.airline || undefined,
+      flightNumber: f.flight_number || undefined,
+    }));
+
+    // Transform database hotels to UI format
+    const dbHotels = (dbItinerary.itinerary_hotels || []).map((h: any) => ({
+      id: h.id,
+      name: h.name,
+      rating: h.rating || 4,
+      pricePerNight: h.price_per_night || 0,
+      nights: dbItinerary.nights || 5,
+      image: h.image_url || '',
+    }));
+
+    // Transform database days/activities to UI format
+    const dbActivities = (dbItinerary.itinerary_days || []).map((day: any) => ({
+      day: day.day_number,
+      items: (day.itinerary_activities || []).map((a: any) => ({
+        id: a.id,
+        name: a.name,
+        time: a.time || '10:00 AM',
+        category: a.category || 'Activity',
+        price: a.price || 0,
+      })),
+    }));
+
+    itinerary = {
+      flights: dbFlights.length > 0 ? dbFlights : mockItinerary.flights,
+      hotels: dbHotels.length > 0 ? dbHotels : mockItinerary.hotels,
+      activities: dbActivities.length > 0 ? dbActivities : mockItinerary.activities,
+    };
+  } else if (generatedState) {
     const placeData = getPlaceById(generatedState.placeId || '');
     if (placeData) {
       destination = {
@@ -479,6 +535,37 @@ export default function TravelPlanPage() {
       throw error;
     }
   };
+
+  // Show loading state for existing itineraries
+  if (isExistingItinerary && isLoadingItinerary) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading trip details...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Handle missing destination gracefully
+  if (!destination) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <p className="text-xl font-semibold mb-2">Trip not found</p>
+            <p className="text-muted-foreground mb-4">The trip you're looking for doesn't exist.</p>
+            <Button onClick={() => navigate('/my-trips')} className="gradient-sky text-primary-foreground">
+              Go to My Trips
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
