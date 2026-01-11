@@ -302,37 +302,63 @@ export function BookingDialog({
 
   const renderConfirmationStep = () => (
     <div className="space-y-4">
-      <div className="text-center mb-4">
-        <h3 className="font-semibold text-lg">Confirm Your Booking</h3>
-        <p className="text-sm text-muted-foreground">Review your selections before confirming</p>
+      <div className="text-center mb-6">
+        <div className="w-16 h-16 rounded-full bg-primary/10 mx-auto mb-3 flex items-center justify-center">
+          <Check className="w-8 h-8 text-primary" />
+        </div>
+        <h3 className="font-semibold text-lg">Review Your Booking</h3>
+        <p className="text-sm text-muted-foreground">Make sure everything looks good</p>
       </div>
       
-      <div className="space-y-3 p-4 rounded-xl bg-muted/50">
-        <div className="flex justify-between items-center">
-          <span className="flex items-center gap-2">
-            <Plane className="w-4 h-4 text-primary" />
-            Flights ({selectedFlights.length})
-          </span>
-          <span>${flights.filter(f => selectedFlights.includes(f.id)).reduce((sum, f) => sum + f.price, 0)}</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="flex items-center gap-2">
-            <Hotel className="w-4 h-4 text-primary" />
-            Hotels ({selectedHotels.length})
-          </span>
-          <span>${hotels.filter(h => selectedHotels.includes(h.id)).reduce((sum, h) => sum + h.price, 0)}</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="flex items-center gap-2">
-            <Camera className="w-4 h-4 text-primary" />
-            Activities ({selectedActivities.length})
-          </span>
-          <span>${activities.filter(a => selectedActivities.includes(a.id)).reduce((sum, a) => sum + a.price, 0)}</span>
-        </div>
-        <div className="border-t pt-3 mt-3">
-          <div className="flex justify-between items-center font-bold text-lg">
-            <span>Total</span>
-            <span className="text-primary">${calculateTotal().toLocaleString()}</span>
+      <div className="space-y-3 p-5 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30 border border-border/50">
+        {selectedFlights.length > 0 && (
+          <div className="flex justify-between items-center py-2">
+            <span className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg gradient-sky flex items-center justify-center">
+                <Plane className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <div>
+                <p className="font-medium">Flights</p>
+                <p className="text-xs text-muted-foreground">{selectedFlights.length} selected</p>
+              </div>
+            </span>
+            <span className="font-semibold">${flights.filter(f => selectedFlights.includes(f.id)).reduce((sum, f) => sum + f.price, 0).toLocaleString()}</span>
+          </div>
+        )}
+        {selectedHotels.length > 0 && (
+          <div className="flex justify-between items-center py-2">
+            <span className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg gradient-sunset flex items-center justify-center">
+                <Hotel className="w-4 h-4 text-accent-foreground" />
+              </div>
+              <div>
+                <p className="font-medium">Hotels</p>
+                <p className="text-xs text-muted-foreground">{selectedHotels.length} selected</p>
+              </div>
+            </span>
+            <span className="font-semibold">${hotels.filter(h => selectedHotels.includes(h.id)).reduce((sum, h) => sum + h.price, 0).toLocaleString()}</span>
+          </div>
+        )}
+        {selectedActivities.length > 0 && (
+          <div className="flex justify-between items-center py-2">
+            <span className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                <Camera className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium">Activities</p>
+                <p className="text-xs text-muted-foreground">{selectedActivities.length} selected</p>
+              </div>
+            </span>
+            <span className="font-semibold">${activities.filter(a => selectedActivities.includes(a.id)).reduce((sum, a) => sum + a.price, 0).toLocaleString()}</span>
+          </div>
+        )}
+        <div className="border-t border-border/50 pt-4 mt-4">
+          <div className="flex justify-between items-center">
+            <span className="text-lg font-semibold">Total Amount</span>
+            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              ${calculateTotal().toLocaleString()}
+            </span>
           </div>
         </div>
       </div>
@@ -345,20 +371,23 @@ export function BookingDialog({
       animate={{ opacity: 1, scale: 1 }}
       className="text-center py-8"
     >
-      <div className="w-20 h-20 rounded-full gradient-sunset mx-auto mb-4 flex items-center justify-center">
-        <PartyPopper className="w-10 h-10 text-white" />
+      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 mx-auto mb-6 flex items-center justify-center shadow-lg">
+        <PartyPopper className="w-12 h-12 text-white" />
       </div>
       <h3 className="font-display font-bold text-2xl mb-2">Booking Confirmed!</h3>
       <p className="text-muted-foreground mb-6">
         Your trip to {destinationName} has been booked successfully.
       </p>
-      <div className="p-4 rounded-xl bg-muted/50 mb-6">
-        <p className="text-sm text-muted-foreground">Booking Reference</p>
-        <p className="font-mono font-bold text-lg">TRV-{Math.random().toString(36).substring(2, 8).toUpperCase()}</p>
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 mb-6">
+        <p className="text-sm text-muted-foreground mb-1">Booking Reference</p>
+        <p className="font-mono font-bold text-2xl text-primary tracking-wider">
+          WDR-{Math.random().toString(36).substring(2, 10).toUpperCase()}
+        </p>
       </div>
-      <p className="text-sm text-muted-foreground">
-        A confirmation email has been sent to your registered email address.
-      </p>
+      <div className="space-y-2 text-sm text-muted-foreground">
+        <p>✓ Confirmation email sent</p>
+        <p>✓ View your trip in My Trips</p>
+      </div>
     </motion.div>
   );
 

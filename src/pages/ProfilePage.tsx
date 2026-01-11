@@ -391,8 +391,8 @@ export default function ProfilePage() {
                 onClick={() => navigate('/search')}
                 className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all text-left"
               >
-                <ChevronRight className="w-5 h-5 text-accent mb-2" />
-                <p className="font-medium text-sm">AI Assistant</p>
+                <MapPin className="w-5 h-5 text-accent mb-2" />
+                <p className="font-medium text-sm">Start Plan</p>
               </button>
             </motion.div>
           )}
@@ -432,63 +432,87 @@ export default function ProfilePage() {
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
               ) : savedItineraries && savedItineraries.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {savedItineraries.map((saved: any) => (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {savedItineraries.map((saved: any, index: number) => (
                     <motion.div
                       key={saved.id}
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-card rounded-xl shadow-travel overflow-hidden cursor-pointer hover:shadow-travel-lg transition-all"
+                      transition={{ delay: index * 0.05 }}
+                      className="group bg-card rounded-2xl shadow-travel overflow-hidden cursor-pointer hover:shadow-travel-lg transition-all duration-300"
                       onClick={() => navigate(`/itinerary/${saved.itinerary?.id}`)}
                     >
-                      {/* Cover Image */}
-                      <div className="relative h-40">
+                      {/* Cover Image with Overlay */}
+                      <div className="relative aspect-[4/3] overflow-hidden">
                         <img 
                           src={saved.itinerary?.cover_image || '/placeholder.svg'} 
                           alt={saved.itinerary?.title}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                        <div className="absolute bottom-3 left-3 right-3">
-                          <h3 className="font-semibold text-white truncate">{saved.itinerary?.title}</h3>
-                          <div className="flex items-center gap-1 text-white/80 text-sm">
-                            <MapPin className="w-3 h-3" />
-                            {saved.itinerary?.destination}, {saved.itinerary?.country}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                        
+                        {/* Bookmark Badge */}
+                        <div className="absolute top-3 right-3">
+                          <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center">
+                            <Bookmark className="w-4 h-4 text-primary fill-current" />
                           </div>
+                        </div>
+                        
+                        {/* AI Generated Badge */}
+                        {saved.itinerary?.is_ai_generated && (
+                          <div className="absolute top-3 left-3">
+                            <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 text-xs">
+                              ✨ AI Generated
+                            </Badge>
+                          </div>
+                        )}
+                        
+                        {/* Content Overlay */}
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                          <div className="flex items-center gap-1 text-white/90 text-sm mb-1">
+                            <MapPin className="w-3.5 h-3.5" />
+                            {saved.itinerary?.destination}
+                            {saved.itinerary?.country && `, ${saved.itinerary.country}`}
+                          </div>
+                          <h3 className="font-display font-bold text-white text-lg line-clamp-2">
+                            {saved.itinerary?.title}
+                          </h3>
                         </div>
                       </div>
                       
-                      {/* Details */}
-                      <div className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            {saved.itinerary?.nights && (
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5" />
-                                {saved.itinerary.nights} nights
-                              </div>
-                            )}
-                            {saved.itinerary?.start_date && (
-                              <div className="flex items-center gap-1">
-                                <Calendar className="w-3.5 h-3.5" />
-                                {format(new Date(saved.itinerary.start_date), 'MMM d')}
-                              </div>
-                            )}
-                          </div>
+                      {/* Details Card */}
+                      <div className="p-4 space-y-3">
+                        {/* Trip Info */}
+                        <div className="flex items-center flex-wrap gap-2">
+                          {saved.itinerary?.nights && (
+                            <Badge variant="secondary" className="rounded-lg text-xs">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {saved.itinerary.nights} nights
+                            </Badge>
+                          )}
                           {saved.itinerary?.budget && (
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge variant="outline" className="rounded-lg text-xs">
                               {saved.itinerary.budget}
+                            </Badge>
+                          )}
+                          {saved.itinerary?.start_date && (
+                            <Badge variant="outline" className="rounded-lg text-xs">
+                              <Calendar className="w-3 h-3 mr-1" />
+                              {format(new Date(saved.itinerary.start_date), 'MMM d, yyyy')}
                             </Badge>
                           )}
                         </div>
                         
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Heart className="w-4 h-4 text-red-500" />
-                            <span>{saved.itinerary?.likes_count || 0} likes</span>
+                        {/* Stats & Action */}
+                        <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+                              {saved.itinerary?.likes_count || 0}
+                            </span>
                           </div>
-                          <Button size="sm" variant="outline" className="rounded-lg text-xs">
-                            View Details
+                          <Button size="sm" className="rounded-xl gradient-sky text-primary-foreground text-xs h-8">
+                            View Trip
                           </Button>
                         </div>
                       </div>
@@ -496,15 +520,19 @@ export default function ProfilePage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Bookmark className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p>No saved itineraries yet</p>
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                    <Bookmark className="w-10 h-10 text-muted-foreground/50" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">No saved itineraries</h3>
+                  <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                    Save itineraries you love to access them quickly later
+                  </p>
                   <Button
-                    variant="outline"
-                    className="mt-4 rounded-xl"
+                    className="rounded-xl gradient-sky text-primary-foreground"
                     onClick={() => navigate('/explore')}
                   >
-                    Explore itineraries
+                    Explore Itineraries
                   </Button>
                 </div>
               )}
