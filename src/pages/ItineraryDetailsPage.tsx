@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -11,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Footer } from '@/components/layout/Footer';
+import { SocialShareModal } from '@/components/share/SocialShareModal';
 import { 
   useItineraryById, 
   useLikeItinerary, 
@@ -27,6 +29,7 @@ import { toast } from 'sonner';
 export default function ItineraryDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const [shareModalOpen, setShareModalOpen] = useState(false);
   const { data: itinerary, isLoading } = useItineraryById(id || '');
   const { data: userLikes } = useUserLikes(user?.id || '');
   const { data: userSaved } = useUserSavedItineraries(user?.id || '');
@@ -38,6 +41,8 @@ export default function ItineraryDetailsPage() {
 
   const isLiked = userLikes?.some(like => like.itinerary_id === id);
   const isSaved = userSaved?.some(saved => saved.itinerary_id === id);
+
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
 
   const handleLike = () => {
     if (!user) {
@@ -64,16 +69,8 @@ export default function ItineraryDetailsPage() {
     }
   };
 
-  const handleShare = async () => {
-    try {
-      await navigator.share({
-        title: itinerary?.title,
-        url: window.location.href,
-      });
-    } catch {
-      navigator.clipboard.writeText(window.location.href);
-      toast.success('Link copied to clipboard!');
-    }
+  const handleShare = () => {
+    setShareModalOpen(true);
   };
 
   if (isLoading) {
@@ -440,6 +437,15 @@ export default function ItineraryDetailsPage() {
       </div>
 
       <Footer />
+      
+      {/* Social Share Modal */}
+      <SocialShareModal
+        open={shareModalOpen}
+        onOpenChange={setShareModalOpen}
+        title={itinerary?.title || 'Check out this itinerary'}
+        url={shareUrl}
+        description={`${itinerary?.destination}, ${itinerary?.country} - ${itinerary?.nights || 0} nights`}
+      />
     </Layout>
   );
 }

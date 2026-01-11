@@ -182,15 +182,42 @@ export const currentUser: UserProfile = {
 
 export const countries = [
   'Greece', 'Japan', 'Peru', 'Maldives', 'France', 'Indonesia', 
-  'Italy', 'Spain', 'Thailand', 'Australia', 'USA', 'Mexico'
+  'Italy', 'Spain', 'Thailand', 'Australia', 'USA', 'Mexico',
+  'United Kingdom', 'Germany', 'Switzerland', 'Portugal', 'Turkey',
+  'Egypt', 'Morocco', 'South Africa', 'Kenya', 'Tanzania',
+  'India', 'Nepal', 'Vietnam', 'Cambodia', 'Philippines', 'Malaysia', 'Singapore',
+  'New Zealand', 'Fiji', 'Canada', 'Brazil', 'Argentina', 'Chile', 'Colombia',
+  'Costa Rica', 'Iceland', 'Norway', 'Sweden', 'Finland', 'Denmark',
+  'Netherlands', 'Belgium', 'Austria', 'Czech Republic', 'Croatia', 'Ireland',
+  'United Arab Emirates', 'Qatar', 'Oman', 'Jordan', 'Israel',
+  'South Korea', 'Taiwan', 'Hong Kong', 'Macau', 'Sri Lanka', 'Bhutan'
 ];
 
 export const activityTypes = [
-  'Beach', 'Adventure', 'Culture', 'Food', 'Shopping', 
-  'Nature', 'Nightlife', 'Wellness', 'Photography'
+  'Beach & Water Sports', 
+  'Adventure & Hiking', 
+  'Culture & History', 
+  'Food & Culinary Tours', 
+  'Shopping & Markets', 
+  'Nature & Wildlife', 
+  'Nightlife & Entertainment', 
+  'Wellness & Spa', 
+  'Photography Tours',
+  'Museums & Art Galleries',
+  'Religious & Spiritual Sites',
+  'Sports & Recreation',
+  'Family Activities',
+  'Romantic Experiences',
+  'Festivals & Events',
+  'Local Experiences',
+  'Boat Tours & Cruises',
+  'City Tours',
+  'Mountain & Skiing',
+  'Desert Safaris'
 ];
 
 export const foodPreferences = [
   'Local Cuisine', 'Fine Dining', 'Street Food', 'Vegetarian', 
-  'Vegan', 'Seafood', 'International'
+  'Vegan', 'Seafood', 'International', 'Halal', 'Kosher',
+  'Farm-to-Table', 'Food Markets', 'Cooking Classes'
 ];
