@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Plane, Hotel, Calendar, Eye, EyeOff, 
-  Loader2, MapPin, DollarSign, Trash2
+  Loader2, MapPin, DollarSign, Trash2, Receipt, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBookedTrips, useToggleTripPrivacy, useDeleteBookedTrip } from '@/hooks/useBookedTrips';
+import { useExpenses } from '@/hooks/useExpenses';
 import { format } from 'date-fns';
 import {
   AlertDialog,
@@ -22,6 +24,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { TripExpenses } from '@/components/trip/TripExpenses';
 
 export default function MyTripsPage() {
   const navigate = useNavigate();
@@ -29,6 +37,13 @@ export default function MyTripsPage() {
   const { data: trips, isLoading } = useBookedTrips();
   const togglePrivacy = useToggleTripPrivacy();
   const deleteTrip = useDeleteBookedTrip();
+  const [expandedExpenses, setExpandedExpenses] = useState<string[]>([]);
+
+  const toggleExpenses = (tripId: string) => {
+    setExpandedExpenses(prev => 
+      prev.includes(tripId) ? prev.filter(id => id !== tripId) : [...prev, tripId]
+    );
+  };
 
   if (!user) {
     navigate('/auth');
@@ -161,6 +176,9 @@ export default function MyTripsPage() {
                       </p>
                     </div>
                   </div>
+
+                  {/* Trip Expenses */}
+                  <TripExpenses bookedTripId={trip.id} />
 
                   {/* Actions */}
                   <div className="flex items-center justify-between pt-4 border-t border-border">

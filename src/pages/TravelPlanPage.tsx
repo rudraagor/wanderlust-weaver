@@ -15,16 +15,56 @@ import { BookingDialog } from '@/components/booking/BookingDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBookTrip } from '@/hooks/useBookedTrips';
 import { useCreateItinerary } from '@/hooks/useItineraries';
+import { useCreateExpense } from '@/hooks/useExpenses';
 import { useToast } from '@/hooks/use-toast';
+
+// Flight and hotel interfaces with extended properties
+interface Flight {
+  id: string;
+  from: string;
+  to: string;
+  time: string;
+  duration: string;
+  price: number;
+  airline?: string;
+  flightNumber?: string;
+  class?: string;
+}
+
+interface HotelInfo {
+  id: string;
+  name: string;
+  rating: number;
+  pricePerNight: number;
+  nights: number;
+  image: string;
+  roomType?: string;
+  amenities?: string[];
+}
+
+interface ActivityItem {
+  id: string;
+  name: string;
+  time: string;
+  category: string;
+  price: number;
+}
+
+interface Itinerary {
+  flights: Flight[];
+  hotels: HotelInfo[];
+  activities: { day: number; items: ActivityItem[] }[];
+}
+
 // Mock itinerary data
-const mockItinerary = {
+const mockItinerary: Itinerary = {
   flights: [
-    { id: '1', from: 'New York (JFK)', to: 'Athens (ATH)', time: '10:30 AM', duration: '10h 30m', price: 850 },
-    { id: '2', from: 'Athens (ATH)', to: 'Santorini (JTR)', time: '2:00 PM', duration: '45m', price: 120 },
+    { id: '1', from: 'New York (JFK)', to: 'Athens (ATH)', time: '10:30 AM', duration: '10h 30m', price: 850, airline: 'Delta', flightNumber: 'DL456' },
+    { id: '2', from: 'Athens (ATH)', to: 'Santorini (JTR)', time: '2:00 PM', duration: '45m', price: 120, airline: 'Aegean', flightNumber: 'A3201' },
   ],
   hotels: [
-    { id: '1', name: 'Canaves Oia Suites', rating: 5, pricePerNight: 450, nights: 5, image: '' },
-    { id: '2', name: 'Grace Santorini', rating: 5, pricePerNight: 380, nights: 5, image: '' },
+    { id: '1', name: 'Canaves Oia Suites', rating: 5, pricePerNight: 450, nights: 5, image: '', roomType: 'Luxury Suite', amenities: ['Pool', 'Spa', 'Gym', 'Free WiFi'] },
+    { id: '2', name: 'Grace Santorini', rating: 5, pricePerNight: 380, nights: 5, image: '', roomType: 'Deluxe Room', amenities: ['Pool', 'Restaurant', 'Bar'] },
   ],
   activities: [
     { day: 1, items: [
@@ -43,7 +83,7 @@ const mockItinerary = {
 };
 
 // Generate custom itinerary based on selected places
-const generateCustomItinerary = (selectedPlaces: any[], placeName: string) => {
+const generateCustomItinerary = (selectedPlaces: any[], placeName: string): Itinerary => {
   const days = Math.max(3, selectedPlaces.length);
   const activities = [];
   
@@ -77,11 +117,11 @@ const generateCustomItinerary = (selectedPlaces: any[], placeName: string) => {
   
   return {
     flights: [
-      { id: '1', from: 'Your City', to: placeName, time: '8:00 AM', duration: '4h 30m', price: 650 },
-      { id: '2', from: placeName, to: 'Your City', time: '6:00 PM', duration: '4h 30m', price: 650 },
+      { id: '1', from: 'Your City', to: placeName, time: '8:00 AM', duration: '4h 30m', price: 650, airline: 'United', flightNumber: 'UA123' },
+      { id: '2', from: placeName, to: 'Your City', time: '6:00 PM', duration: '4h 30m', price: 650, airline: 'United', flightNumber: 'UA456' },
     ],
     hotels: [
-      { id: '1', name: `Premium ${placeName} Resort`, rating: 5, pricePerNight: 350, nights: days, image: '' },
+      { id: '1', name: `Premium ${placeName} Resort`, rating: 5, pricePerNight: 350, nights: days, image: '', roomType: 'Deluxe Suite', amenities: ['Pool', 'Spa', 'Gym'] },
     ],
     activities,
   };
@@ -100,6 +140,7 @@ export default function TravelPlanPage() {
   
   const bookTrip = useBookTrip();
   const createItinerary = useCreateItinerary();
+  const createExpense = useCreateExpense();
 
   // Check if this is a generated trip
   const generatedState = location.state as { 
@@ -139,10 +180,45 @@ export default function TravelPlanPage() {
     }
   } else if (searchFilters) {
     // AI Generated trip from search page
+    const sourceCity = searchFilters.sourceCity || 'New York (JFK)';
+    const destinationCountry = searchFilters.country || 'Your Destination';
+    
+    // Generate realistic airport codes based on country
+    const airportCodes: Record<string, string> = {
+      'Greece': 'ATH', 'Japan': 'NRT', 'Peru': 'LIM', 'Maldives': 'MLE', 'France': 'CDG',
+      'Indonesia': 'DPS', 'Italy': 'FCO', 'Spain': 'MAD', 'Thailand': 'BKK', 'Australia': 'SYD',
+      'USA': 'LAX', 'Mexico': 'MEX', 'United Kingdom': 'LHR', 'Germany': 'FRA',
+      'Switzerland': 'ZRH', 'Portugal': 'LIS', 'Turkey': 'IST', 'Egypt': 'CAI',
+      'Morocco': 'CMN', 'South Africa': 'JNB', 'Kenya': 'NBO', 'India': 'DEL',
+      'Vietnam': 'SGN', 'Singapore': 'SIN', 'New Zealand': 'AKL', 'Canada': 'YYZ',
+      'Brazil': 'GRU', 'Argentina': 'EZE', 'United Arab Emirates': 'DXB', 'South Korea': 'ICN'
+    };
+    const destAirport = airportCodes[destinationCountry] || 'INT';
+    
+    // Generate flight details with airline names
+    const airlines = ['Emirates', 'Qatar Airways', 'Singapore Airlines', 'Lufthansa', 'British Airways', 'Air France', 'Delta', 'United'];
+    const randomAirline = airlines[Math.floor(Math.random() * airlines.length)];
+    const flightNumber = `${randomAirline.substring(0, 2).toUpperCase()}${Math.floor(Math.random() * 900) + 100}`;
+    
+    // Calculate flight price based on distance/destination
+    const baseFlightPrice = destinationCountry.includes('Europe') ? 650 : 
+                           destinationCountry.includes('Asia') ? 850 : 
+                           destinationCountry.includes('Australia') ? 1200 : 550;
+    const flightPrice = baseFlightPrice + Math.floor(Math.random() * 200);
+    
+    // Calculate duration
+    const flightDurations: Record<string, string> = {
+      'Greece': '10h 30m', 'Japan': '14h 15m', 'Peru': '8h 45m', 'Maldives': '18h 20m',
+      'France': '7h 30m', 'Indonesia': '20h 15m', 'Italy': '8h 45m', 'Spain': '7h 50m',
+      'Thailand': '17h 30m', 'Australia': '22h 15m', 'United Kingdom': '7h 15m',
+      'Germany': '8h 20m', 'Switzerland': '8h 35m', 'United Arab Emirates': '13h 45m'
+    };
+    const duration = flightDurations[destinationCountry] || '10h 30m';
+
     destination = {
       id: 'ai-generated',
-      name: searchFilters.country || 'Your Destination',
-      country: searchFilters.country || 'World',
+      name: destinationCountry,
+      country: destinationCountry,
       image: destinations[0]?.image || '/placeholder.svg',
       rating: 4.9,
       budget: searchFilters.budget ? `$${searchFilters.budget[0]} - $${searchFilters.budget[1]}` : '$$$',
@@ -152,6 +228,21 @@ export default function TravelPlanPage() {
     const days = searchFilters.dateFrom && searchFilters.dateTo 
       ? Math.ceil((new Date(searchFilters.dateTo).getTime() - new Date(searchFilters.dateFrom).getTime()) / (1000 * 60 * 60 * 24))
       : 5;
+    
+    // Hotel names based on rating
+    const hotelNames: Record<number, string[]> = {
+      5: ['The Ritz-Carlton', 'Four Seasons Resort', 'Mandarin Oriental', 'St. Regis', 'Park Hyatt'],
+      4: ['Marriott Resort', 'Hilton Garden Inn', 'Hyatt Regency', 'InterContinental', 'Westin'],
+      3: ['Holiday Inn', 'Best Western Plus', 'Courtyard by Marriott', 'Novotel', 'Radisson'],
+      2: ['Comfort Inn', 'Hampton Inn', 'La Quinta', 'Days Inn', 'Quality Inn'],
+    };
+    const hotelRating = searchFilters.hotelRating || 4;
+    const hotelNameOptions = hotelNames[hotelRating] || hotelNames[4];
+    const selectedHotel = hotelNameOptions[Math.floor(Math.random() * hotelNameOptions.length)];
+    
+    // Price per night based on rating and destination
+    const basePricePerNight = hotelRating === 5 ? 450 : hotelRating === 4 ? 220 : hotelRating === 3 ? 120 : 80;
+    const pricePerNight = basePricePerNight + Math.floor(Math.random() * 50);
     
     const generatedActivities = [];
     for (let i = 1; i <= days; i++) {
@@ -183,17 +274,39 @@ export default function TravelPlanPage() {
     
     itinerary = {
       flights: [
-        { id: 'ai-f1', from: 'Your City', to: searchFilters.country, time: '8:00 AM', duration: '4h 30m', price: 550 },
-        { id: 'ai-f2', from: searchFilters.country, to: 'Your City', time: '6:00 PM', duration: '4h 30m', price: 550 },
+        { 
+          id: 'ai-f1', 
+          from: sourceCity, 
+          to: `${destinationCountry} (${destAirport})`, 
+          time: '8:00 AM', 
+          duration, 
+          price: flightPrice,
+          airline: randomAirline,
+          flightNumber,
+          class: 'Economy'
+        },
+        { 
+          id: 'ai-f2', 
+          from: `${destinationCountry} (${destAirport})`, 
+          to: sourceCity, 
+          time: '6:00 PM', 
+          duration, 
+          price: flightPrice,
+          airline: randomAirline,
+          flightNumber: `${randomAirline.substring(0, 2).toUpperCase()}${Math.floor(Math.random() * 900) + 100}`,
+          class: 'Economy'
+        },
       ],
       hotels: [
         { 
           id: 'ai-h1', 
-          name: `${searchFilters.hotelRating || 4}★ Premium Resort`, 
-          rating: searchFilters.hotelRating || 4, 
-          pricePerNight: searchFilters.hotelRating === 5 ? 350 : searchFilters.hotelRating === 4 ? 200 : 100, 
+          name: `${selectedHotel} ${destinationCountry}`, 
+          rating: hotelRating, 
+          pricePerNight, 
           nights: days, 
-          image: '' 
+          image: '',
+          roomType: hotelRating >= 4 ? 'Deluxe Suite' : 'Standard Room',
+          amenities: hotelRating >= 4 ? ['Pool', 'Spa', 'Gym', 'Free WiFi', 'Breakfast'] : ['Free WiFi', 'Breakfast']
         },
       ],
       activities: generatedActivities,
@@ -298,17 +411,65 @@ export default function TravelPlanPage() {
       }
 
       // Book the trip
-      await bookTrip.mutateAsync({
+      const bookedTrip = await bookTrip.mutateAsync({
         itineraryId,
         flightsBooked: bookingFlights.length > 0,
         hotelsBooked: bookingHotels.length > 0,
         activitiesBooked: bookingActivities.length > 0,
       });
 
+      // Add expenses for the booked trip
+      const expensePromises = [];
+      
+      // Add flight expenses
+      for (const flight of itinerary.flights) {
+        expensePromises.push(
+          createExpense.mutateAsync({
+            booked_trip_id: bookedTrip.id,
+            category: 'flight',
+            description: `Flight: ${flight.from} → ${flight.to}${flight.airline ? ` (${flight.airline} ${flight.flightNumber})` : ''}`,
+            amount: flight.price,
+          })
+        );
+      }
+      
+      // Add hotel expenses
+      for (const hotel of itinerary.hotels) {
+        expensePromises.push(
+          createExpense.mutateAsync({
+            booked_trip_id: bookedTrip.id,
+            category: 'hotel',
+            description: `${hotel.name}${hotel.roomType ? ` - ${hotel.roomType}` : ''} (${hotel.nights} nights)`,
+            amount: hotel.pricePerNight * (hotel.nights || 1),
+          })
+        );
+      }
+      
+      // Add activity expenses
+      for (const day of itinerary.activities) {
+        for (const activity of day.items) {
+          if (activity.price > 0) {
+            expensePromises.push(
+              createExpense.mutateAsync({
+                booked_trip_id: bookedTrip.id,
+                category: 'activity',
+                description: `Day ${day.day}: ${activity.name}`,
+                amount: activity.price,
+              })
+            );
+          }
+        }
+      }
+      
+      await Promise.all(expensePromises);
+
       toast({ 
         title: 'Trip Booked!', 
         description: 'Your trip has been booked successfully. View it in My Trips.',
       });
+      
+      // Navigate to my trips page
+      navigate('/my-trips');
     } catch (error: any) {
       toast({ 
         title: 'Booking Failed', 
