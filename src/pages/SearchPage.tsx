@@ -1,14 +1,20 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  DollarSign, Calendar, MapPin, Utensils, ShoppingBag, 
-  Star, Activity, Search, Sparkles
+  DollarSign, Calendar, MapPin, Utensils, 
+  Star, Activity, Sparkles, ChevronDown, X
 } from 'lucide-react';
+import { format, addDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -16,19 +22,48 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Layout } from '@/components/layout/Layout';
 import { countries, activityTypes, foodPreferences } from '@/data/mockData';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+
+// Budget presets
+const budgetPresets = [
+  { label: 'Budget', min: 100, max: 1000, description: '$100 - $1,000' },
+  { label: 'Mid-Range', min: 1000, max: 5000, description: '$1,000 - $5,000' },
+  { label: 'Luxury', min: 5000, max: 15000, description: '$5,000 - $15,000' },
+  { label: 'Ultra Luxury', min: 15000, max: 50000, description: '$15,000+' },
+];
 
 export default function SearchPage() {
   const navigate = useNavigate();
-  const [budget, setBudget] = useState([1000, 5000]);
+  const [budgetPreset, setBudgetPreset] = useState<string>('Mid-Range');
+  const [customBudget, setCustomBudget] = useState<[number, number]>([1000, 5000]);
+  const [useCustomBudget, setUseCustomBudget] = useState(false);
   const [country, setCountry] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [hotelRating, setHotelRating] = useState([3]);
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [selectedFood, setSelectedFood] = useState<string[]>([]);
+
+  // Today's date for calendar constraints
+  const today = useMemo(() => new Date(), []);
+
+  // Get budget values based on preset or custom
+  const currentBudget = useMemo(() => {
+    if (useCustomBudget) {
+      return customBudget;
+    }
+    const preset = budgetPresets.find(p => p.label === budgetPreset);
+    return preset ? [preset.min, preset.max] : [1000, 5000];
+  }, [budgetPreset, customBudget, useCustomBudget]);
 
   const toggleActivity = (activity: string) => {
     setSelectedActivities(prev => 
@@ -49,10 +84,10 @@ export default function SearchPage() {
   const handleGeneratePlan = () => {
     // Save filters to localStorage and navigate to generated plan
     const filters = {
-      budget,
+      budget: currentBudget,
       country,
-      dateFrom,
-      dateTo,
+      dateFrom: dateFrom?.toISOString(),
+      dateTo: dateTo?.toISOString(),
       hotelRating: hotelRating[0],
       activities: selectedActivities,
       food: selectedFood
@@ -60,6 +95,9 @@ export default function SearchPage() {
     localStorage.setItem('searchFilters', JSON.stringify(filters));
     navigate('/plan/generated');
   };
+
+  // Sorted countries for better UX
+  const sortedCountries = useMemo(() => [...countries].sort(), []);
 
   return (
     <Layout>
@@ -100,18 +138,60 @@ export default function SearchPage() {
                   </div>
                   <Label className="text-lg font-semibold">Budget Range</Label>
                 </div>
-                <Slider
-                  value={budget}
-                  onValueChange={setBudget}
-                  min={100}
-                  max={20000}
-                  step={100}
-                  className="mb-4"
-                />
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>${budget[0].toLocaleString()}</span>
-                  <span>${budget[1].toLocaleString()}</span>
+                
+                {/* Budget Preset Options */}
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  {budgetPresets.map((preset) => (
+                    <Button
+                      key={preset.label}
+                      variant={!useCustomBudget && budgetPreset === preset.label ? "default" : "outline"}
+                      size="sm"
+                      className="h-auto py-2 px-3 flex-col items-start"
+                      onClick={() => {
+                        setBudgetPreset(preset.label);
+                        setUseCustomBudget(false);
+                      }}
+                    >
+                      <span className="font-medium text-xs">{preset.label}</span>
+                      <span className="text-[10px] opacity-70">{preset.description}</span>
+                    </Button>
+                  ))}
                 </div>
+
+                {/* Custom Budget Toggle */}
+                <div className="mb-4">
+                  <Button
+                    variant={useCustomBudget ? "default" : "outline"}
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setUseCustomBudget(!useCustomBudget)}
+                  >
+                    Custom Range
+                  </Button>
+                </div>
+
+                {/* Custom Slider (shown when custom is selected) */}
+                {useCustomBudget && (
+                  <div className="space-y-3">
+                    <Slider
+                      value={customBudget}
+                      onValueChange={(value) => setCustomBudget(value as [number, number])}
+                      min={100}
+                      max={50000}
+                      step={100}
+                    />
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>${customBudget[0].toLocaleString()}</span>
+                      <span>${customBudget[1].toLocaleString()}</span>
+                    </div>
+                  </div>
+                )}
+
+                {!useCustomBudget && (
+                  <div className="text-center text-sm text-muted-foreground">
+                    Selected: ${currentBudget[0].toLocaleString()} - ${currentBudget[1].toLocaleString()}
+                  </div>
+                )}
               </motion.div>
 
               {/* Country */}
@@ -131,12 +211,23 @@ export default function SearchPage() {
                   <SelectTrigger className="rounded-xl">
                     <SelectValue placeholder="Select a country" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {countries.map((c) => (
+                  <SelectContent className="max-h-[300px]">
+                    {sortedCountries.map((c) => (
                       <SelectItem key={c} value={c}>{c}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {country && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 text-muted-foreground"
+                    onClick={() => setCountry('')}
+                  >
+                    <X className="w-3 h-3 mr-1" />
+                    Clear selection
+                  </Button>
+                )}
               </motion.div>
             </div>
 
@@ -154,28 +245,84 @@ export default function SearchPage() {
                 <Label className="text-lg font-semibold">Travel Dates</Label>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* From Date */}
                 <div>
                   <Label className="text-sm text-muted-foreground mb-2 block">From</Label>
-                  <Input
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="rounded-xl"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal rounded-xl",
+                          !dateFrom && "text-muted-foreground"
+                        )}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {dateFrom ? format(dateFrom, "PPP") : "Pick start date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={dateFrom}
+                        onSelect={(date) => {
+                          setDateFrom(date);
+                          // Reset dateTo if it's before new dateFrom
+                          if (date && dateTo && dateTo <= date) {
+                            setDateTo(undefined);
+                          }
+                        }}
+                        disabled={(date) => date < today}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
+                
+                {/* To Date */}
                 <div>
                   <Label className="text-sm text-muted-foreground mb-2 block">To</Label>
-                  <Input
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="rounded-xl"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal rounded-xl",
+                          !dateTo && "text-muted-foreground"
+                        )}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {dateTo ? format(dateTo, "PPP") : "Pick end date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={dateTo}
+                        onSelect={setDateTo}
+                        disabled={(date) => {
+                          // Must be after today and after dateFrom (at least 1 day)
+                          const minDate = dateFrom ? addDays(dateFrom, 1) : addDays(today, 1);
+                          return date < minDate;
+                        }}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
+              
+              {/* Date Range Summary */}
+              {dateFrom && dateTo && (
+                <div className="mt-4 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+                  Trip duration: {Math.ceil((dateTo.getTime() - dateFrom.getTime()) / (1000 * 60 * 60 * 24))} days
+                </div>
+              )}
             </motion.div>
 
-            {/* Activities */}
+            {/* Activities - Dropdown Menu */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -188,22 +335,48 @@ export default function SearchPage() {
                 </div>
                 <Label className="text-lg font-semibold">Activities</Label>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {activityTypes.map((activity) => (
-                  <Badge
-                    key={activity}
-                    variant={selectedActivities.includes(activity) ? "default" : "outline"}
-                    className={`cursor-pointer transition-all px-4 py-2 rounded-xl ${
-                      selectedActivities.includes(activity) 
-                        ? 'gradient-sky text-primary-foreground' 
-                        : 'hover:bg-muted'
-                    }`}
-                    onClick={() => toggleActivity(activity)}
-                  >
-                    {activity}
-                  </Badge>
-                ))}
-              </div>
+              
+              {/* Dropdown for Activities */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between rounded-xl">
+                    <span>
+                      {selectedActivities.length === 0 
+                        ? 'Select activities' 
+                        : `${selectedActivities.length} selected`}
+                    </span>
+                    <ChevronDown className="w-4 h-4 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-80 max-h-80 overflow-y-auto">
+                  {activityTypes.map((activity) => (
+                    <DropdownMenuCheckboxItem
+                      key={activity}
+                      checked={selectedActivities.includes(activity)}
+                      onCheckedChange={() => toggleActivity(activity)}
+                    >
+                      {activity}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              {/* Selected Activities Tags */}
+              {selectedActivities.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {selectedActivities.map((activity) => (
+                    <Badge
+                      key={activity}
+                      variant="default"
+                      className="cursor-pointer gradient-sky text-primary-foreground px-3 py-1"
+                      onClick={() => toggleActivity(activity)}
+                    >
+                      {activity}
+                      <X className="w-3 h-3 ml-1" />
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </motion.div>
 
             {/* Food & Hotel Rating Row */}
