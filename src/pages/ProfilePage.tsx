@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Settings, Grid, Bookmark, Users, MapPin,
-  Link as LinkIcon, Edit, ChevronRight, Camera, Loader2, LogOut, Plane, Heart, UserPlus, UserMinus
+  Link as LinkIcon, Edit, ChevronRight, Camera, Loader2, LogOut, Plane, Heart, UserPlus, UserMinus, Calendar, Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -11,12 +11,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile, useUpdateProfile, useUploadAvatar } from '@/hooks/useProfile';
-import { useConnections, useFollowUser, useUnfollowUser } from '@/hooks/useConnections';
+import { useFollowers, useFollowing, useFollowUser, useUnfollowUser, useConnections } from '@/hooks/useConnections';
 import { useSavedItineraries } from '@/hooks/useItineraries';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +36,8 @@ export default function ProfilePage() {
   
   const [activeTab, setActiveTab] = useState('posts');
   const [isEditing, setIsEditing] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowing, setShowFollowing] = useState(false);
   const [editForm, setEditForm] = useState({
     display_name: '',
     username: '',
@@ -48,6 +52,8 @@ export default function ProfilePage() {
 
   const { data: profile, isLoading } = useProfile(targetUserId);
   const { data: connections } = useConnections(targetUserId);
+  const { data: followers } = useFollowers();
+  const { data: following } = useFollowing();
   const { data: savedItineraries, isLoading: savedLoading } = useSavedItineraries();
   const updateProfile = useUpdateProfile();
   const uploadAvatar = useUploadAvatar();
@@ -203,10 +209,20 @@ export default function ProfilePage() {
                   </h1>
                   <p className="text-muted-foreground mb-2">@{profile.username || 'user'}</p>
                   
-                  {/* Follower/Following counts */}
+                  {/* Follower/Following counts - Clickable */}
                   <div className="flex gap-4 text-sm mb-2">
-                    <span><strong>{connections?.followers?.length || 0}</strong> followers</span>
-                    <span><strong>{connections?.following?.length || 0}</strong> following</span>
+                    <button 
+                      onClick={() => setShowFollowers(true)}
+                      className="hover:text-primary transition-colors"
+                    >
+                      <strong>{connections?.followers?.length || 0}</strong> followers
+                    </button>
+                    <button 
+                      onClick={() => setShowFollowing(true)}
+                      className="hover:text-primary transition-colors"
+                    >
+                      <strong>{connections?.following?.length || 0}</strong> following
+                    </button>
                   </div>
                   
                   {profile.location && (
@@ -402,9 +418,9 @@ export default function ProfilePage() {
                   <Button
                     variant="outline"
                     className="mt-4 rounded-xl"
-                    onClick={() => navigate('/create')}
+                    onClick={() => navigate('/explore')}
                   >
-                    Create your first post
+                    Explore itineraries
                   </Button>
                 )}
               </div>
@@ -416,30 +432,64 @@ export default function ProfilePage() {
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
               ) : savedItineraries && savedItineraries.length > 0 ? (
-                <div className="grid gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
                   {savedItineraries.map((saved: any) => (
                     <motion.div
                       key={saved.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-card rounded-xl shadow-travel p-4 cursor-pointer hover:shadow-travel-lg transition-all"
-                      onClick={() => navigate(`/plan/${saved.itinerary?.id}`)}
+                      className="bg-card rounded-xl shadow-travel overflow-hidden cursor-pointer hover:shadow-travel-lg transition-all"
+                      onClick={() => navigate(`/itinerary/${saved.itinerary?.id}`)}
                     >
-                      <div className="flex items-center gap-4">
-                        {saved.itinerary?.cover_image && (
-                          <img 
-                            src={saved.itinerary.cover_image} 
-                            alt={saved.itinerary.title}
-                            className="w-16 h-16 rounded-lg object-cover"
-                          />
-                        )}
-                        <div className="flex-1">
-                          <h3 className="font-semibold">{saved.itinerary?.title}</h3>
-                          <p className="text-sm text-muted-foreground">{saved.itinerary?.destination}</p>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                            <Heart className="w-3 h-3" />
-                            {saved.itinerary?.likes_count || 0} likes
+                      {/* Cover Image */}
+                      <div className="relative h-40">
+                        <img 
+                          src={saved.itinerary?.cover_image || '/placeholder.svg'} 
+                          alt={saved.itinerary?.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        <div className="absolute bottom-3 left-3 right-3">
+                          <h3 className="font-semibold text-white truncate">{saved.itinerary?.title}</h3>
+                          <div className="flex items-center gap-1 text-white/80 text-sm">
+                            <MapPin className="w-3 h-3" />
+                            {saved.itinerary?.destination}, {saved.itinerary?.country}
                           </div>
+                        </div>
+                      </div>
+                      
+                      {/* Details */}
+                      <div className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            {saved.itinerary?.nights && (
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5" />
+                                {saved.itinerary.nights} nights
+                              </div>
+                            )}
+                            {saved.itinerary?.start_date && (
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-3.5 h-3.5" />
+                                {format(new Date(saved.itinerary.start_date), 'MMM d')}
+                              </div>
+                            )}
+                          </div>
+                          {saved.itinerary?.budget && (
+                            <Badge variant="secondary" className="text-xs">
+                              {saved.itinerary.budget}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Heart className="w-4 h-4 text-red-500" />
+                            <span>{saved.itinerary?.likes_count || 0} likes</span>
+                          </div>
+                          <Button size="sm" variant="outline" className="rounded-lg text-xs">
+                            View Details
+                          </Button>
                         </div>
                       </div>
                     </motion.div>
@@ -462,6 +512,82 @@ export default function ProfilePage() {
           </Tabs>
         </div>
       </div>
+
+      {/* Followers Dialog */}
+      <Dialog open={showFollowers} onOpenChange={setShowFollowers}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Followers</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[400px] overflow-y-auto space-y-2">
+            {isOwnProfile && followers?.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">No followers yet</p>
+            )}
+            {isOwnProfile && followers?.map((follower) => (
+              <div
+                key={follower.id}
+                className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 cursor-pointer transition-colors"
+                onClick={() => {
+                  setShowFollowers(false);
+                  navigate(`/profile/${follower.follower_id}`);
+                }}
+              >
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={follower.profile?.avatar_url || undefined} />
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground text-sm">
+                    {follower.profile?.display_name?.[0] || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{follower.profile?.display_name || 'User'}</p>
+                  <p className="text-sm text-muted-foreground truncate">@{follower.profile?.username || 'user'}</p>
+                </div>
+              </div>
+            ))}
+            {!isOwnProfile && (
+              <p className="text-center text-muted-foreground py-8">{connections?.followers?.length || 0} followers</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Following Dialog */}
+      <Dialog open={showFollowing} onOpenChange={setShowFollowing}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Following</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[400px] overflow-y-auto space-y-2">
+            {isOwnProfile && following?.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">Not following anyone yet</p>
+            )}
+            {isOwnProfile && following?.map((follow) => (
+              <div
+                key={follow.id}
+                className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 cursor-pointer transition-colors"
+                onClick={() => {
+                  setShowFollowing(false);
+                  navigate(`/profile/${follow.following_id}`);
+                }}
+              >
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={follow.profile?.avatar_url || undefined} />
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground text-sm">
+                    {follow.profile?.display_name?.[0] || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{follow.profile?.display_name || 'User'}</p>
+                  <p className="text-sm text-muted-foreground truncate">@{follow.profile?.username || 'user'}</p>
+                </div>
+              </div>
+            ))}
+            {!isOwnProfile && (
+              <p className="text-center text-muted-foreground py-8">{connections?.following?.length || 0} following</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Search, Bell, MessageCircle, Home, Compass, 
-  PlusCircle, User, MapPin, LogIn
+  Plane, User, MapPin, LogIn
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,11 +11,12 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
+import { useUnreadNotificationCount } from '@/hooks/useNotifications';
 
 const navItems = [
   { path: '/', label: 'Home', icon: Home },
   { path: '/explore', label: 'Explore', icon: Compass },
-  { path: '/create', label: 'Create', icon: PlusCircle },
+  { path: '/my-trips', label: 'My Trips', icon: Plane },
   { path: '/profile', label: 'Profile', icon: User },
 ];
 
@@ -25,6 +26,7 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const { user } = useAuth();
   const { data: profile } = useProfile();
+  const { data: unreadCount } = useUnreadNotificationCount();
 
   return (
     <header className="sticky top-0 z-50 glass-strong">
@@ -83,9 +85,11 @@ export function Header() {
             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
               <Button variant="ghost" size="icon" className="rounded-xl relative" onClick={() => navigate('/notifications')}>
                 <Bell className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent text-accent-foreground text-xs rounded-full flex items-center justify-center font-medium">
-                  3
-                </span>
+                {(unreadCount ?? 0) > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent text-accent-foreground text-xs rounded-full flex items-center justify-center font-medium">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </Button>
             </motion.div>
             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>

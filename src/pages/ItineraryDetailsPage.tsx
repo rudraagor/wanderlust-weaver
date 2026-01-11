@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   MapPin, Calendar, Clock, Plane, Hotel, Utensils, 
-  Activity, ArrowLeft, Heart, Bookmark, Share2, Star
+  Activity, ArrowLeft, Heart, Bookmark, Share2, Star, Loader2
 } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Footer } from '@/components/layout/Footer';
 import { SocialShareModal } from '@/components/share/SocialShareModal';
+import { BookingDialog } from '@/components/booking/BookingDialog';
 import { 
   useItineraryById, 
   useLikeItinerary, 
@@ -22,14 +23,18 @@ import {
   useUserLikes,
   useUserSavedItineraries
 } from '@/hooks/useItineraries';
+import { useBookTrip } from '@/hooks/useBookedTrips';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 export default function ItineraryDetailsPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  
   const { data: itinerary, isLoading } = useItineraryById(id || '');
   const { data: userLikes } = useUserLikes(user?.id || '');
   const { data: userSaved } = useUserSavedItineraries(user?.id || '');
@@ -38,6 +43,7 @@ export default function ItineraryDetailsPage() {
   const unlikeItinerary = useUnlikeItinerary();
   const saveItinerary = useSaveItinerary();
   const unsaveItinerary = useUnsaveItinerary();
+  const bookTrip = useBookTrip();
 
   const isLiked = userLikes?.some(like => like.itinerary_id === id);
   const isSaved = userSaved?.some(saved => saved.itinerary_id === id);
@@ -427,7 +433,17 @@ export default function ItineraryDetailsPage() {
                   )}
                 </div>
 
-                <Button className="w-full mt-6 gradient-sky text-white">
+                <Button 
+                  className="w-full mt-6 gradient-sky text-white"
+                  onClick={() => {
+                    if (!user) {
+                      toast.error('Please sign in to book this trip');
+                      navigate('/auth');
+                      return;
+                    }
+                    setBookingDialogOpen(true);
+                  }}
+                >
                   Book This Trip
                 </Button>
               </CardContent>
@@ -445,6 +461,48 @@ export default function ItineraryDetailsPage() {
         title={itinerary?.title || 'Check out this itinerary'}
         url={shareUrl}
         description={`${itinerary?.destination}, ${itinerary?.country} - ${itinerary?.nights || 0} nights`}
+      />
+
+      {/* Booking Dialog */}
+      <BookingDialog
+        open={bookingDialogOpen}
+        onOpenChange={setBookingDialogOpen}
+        destinationName={`${itinerary?.destination}, ${itinerary?.country}`}
+        flights={itinerary?.itinerary_flights?.map((f: any) => ({
+          id: f.id,
+          name: `${f.departure_airport} → ${f.arrival_airport}`,
+          price: f.price || 0,
+          details: `${f.airline || 'Flight'} ${f.flight_number || ''}`
+        })) || []}
+        hotels={itinerary?.itinerary_hotels?.map((h: any) => ({
+          id: h.id,
+          name: h.name,
+          price: (h.price_per_night || 0) * (itinerary?.nights || 1),
+          details: `${h.price_per_night || 0}/night`
+        })) || []}
+        activities={itinerary?.itinerary_days?.flatMap((d: any) => 
+          (d.itinerary_activities || []).map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            price: a.price || 0,
+            details: a.category || 'Activity'
+          }))
+        ) || []}
+        totalCost={itinerary?.total_cost || 0}
+        onConfirmBooking={async (data) => {
+          try {
+            await bookTrip.mutateAsync({
+              itineraryId: id!,
+              flightsBooked: data.flights.length > 0,
+              hotelsBooked: data.hotels.length > 0,
+              activitiesBooked: data.activities.length > 0,
+            });
+            toast.success('Trip booked successfully!');
+            navigate('/my-trips');
+          } catch (error: any) {
+            toast.error(error.message || 'Failed to book trip');
+          }
+        }}
       />
     </Layout>
   );
