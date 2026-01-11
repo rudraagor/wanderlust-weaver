@@ -133,6 +133,7 @@ export type Database = {
           is_public: boolean
           likes_count: number
           nights: number | null
+          place_id: string | null
           start_date: string | null
           title: string
           total_cost: number | null
@@ -151,6 +152,7 @@ export type Database = {
           is_public?: boolean
           likes_count?: number
           nights?: number | null
+          place_id?: string | null
           start_date?: string | null
           title: string
           total_cost?: number | null
@@ -169,13 +171,22 @@ export type Database = {
           is_public?: boolean
           likes_count?: number
           nights?: number | null
+          place_id?: string | null
           start_date?: string | null
           title?: string
           total_cost?: number | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "itineraries_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "places"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       itinerary_activities: {
         Row: {

@@ -80,11 +80,6 @@ export default function PlaceDetailsPage() {
     return selectedPlaces.some(p => p.id === placeToVisit.id);
   };
 
-  const handleGenerateDefault = () => {
-    setIsCustomTrip(false);
-    setShowTripGenerator(true);
-  };
-
   const handleGenerateCustom = () => {
     setIsCustomTrip(true);
     setShowTripGenerator(true);
@@ -323,23 +318,13 @@ export default function PlaceDetailsPage() {
 
                   {/* Trip Generation Buttons - Side by Side */}
                   <div className="space-y-3 pt-4 border-t">
-                    <Link to={`/place/${id}/trips`} className="block">
-                      <Button variant="outline" className="w-full" size="lg">
-                        <Map className="w-4 h-4 mr-2" />
-                        View Existing Trips
-                      </Button>
-                    </Link>
-
-                    {/* Side by side buttons */}
                     <div className="grid grid-cols-2 gap-2">
-                      <Button 
-                        onClick={handleGenerateDefault}
-                        className="gradient-sky text-white" 
-                        size="lg"
-                      >
-                        <Sparkles className="w-4 h-4 mr-1" />
-                        Default
-                      </Button>
+                      <Link to={`/place/${id}/trips`} className="block">
+                        <Button variant="outline" className="w-full" size="lg">
+                          <Map className="w-4 h-4 mr-2" />
+                          View Trips
+                        </Button>
+                      </Link>
 
                       <Button 
                         onClick={handleGenerateCustom}
@@ -372,6 +357,8 @@ export default function PlaceDetailsPage() {
         onOpenChange={setShowTripGenerator}
         placeName={place.name}
         placeId={place.id}
+        placeCountry={place.country}
+        placeImage={placeImage}
         selectedPlaces={selectedPlaces.map(p => ({ name: p.name, description: p.description || '', type: p.type || '' }))}
         isCustom={isCustomTrip}
       />

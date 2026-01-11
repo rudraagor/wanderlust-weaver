@@ -19,6 +19,7 @@ export interface Itinerary {
   likes_count: number;
   created_at: string;
   updated_at: string;
+  place_id: string | null;
 }
 
 export interface ItineraryWithDetails extends Itinerary {
@@ -120,6 +121,40 @@ export function usePublicItineraries() {
 
       return enrichedData as ItineraryWithDetails[];
     },
+  });
+}
+
+// Fetch itineraries by place ID
+export function useItinerariesByPlace(placeId: string | undefined) {
+  return useQuery({
+    queryKey: ['itineraries-by-place', placeId],
+    queryFn: async () => {
+      if (!placeId) return [];
+      
+      const { data, error } = await supabase
+        .from('itineraries')
+        .select('*')
+        .eq('place_id', placeId)
+        .eq('is_public', true)
+        .order('likes_count', { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch profiles for each itinerary
+      const enrichedData = await Promise.all(
+        (data || []).map(async (itinerary) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name, username, avatar_url')
+            .eq('user_id', itinerary.user_id)
+            .single();
+          return { ...itinerary, profiles: profile };
+        })
+      );
+
+      return enrichedData as ItineraryWithDetails[];
+    },
+    enabled: !!placeId,
   });
 }
 
@@ -258,6 +293,7 @@ export function useCreateItinerary() {
       is_public?: boolean;
       is_ai_generated?: boolean;
       total_cost?: number;
+      place_id?: string;
       flights?: Omit<ItineraryFlight, 'id' | 'itinerary_id'>[];
       hotels?: Omit<ItineraryHotel, 'id' | 'itinerary_id'>[];
       days?: {
@@ -286,6 +322,7 @@ export function useCreateItinerary() {
           is_public: data.is_public ?? false,
           is_ai_generated: data.is_ai_generated ?? false,
           total_cost: data.total_cost,
+          place_id: data.place_id,
         })
         .select()
         .single();
@@ -352,6 +389,7 @@ export function useCreateItinerary() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-itineraries'] });
       queryClient.invalidateQueries({ queryKey: ['public-itineraries'] });
+      queryClient.invalidateQueries({ queryKey: ['itineraries-by-place'] });
     },
   });
 }

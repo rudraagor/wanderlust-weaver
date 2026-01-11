@@ -1,26 +1,49 @@
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Star, User, Clock, ArrowLeft } from 'lucide-react';
+import { MapPin, Calendar, Star, Clock, ArrowLeft, Loader2 } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Footer } from '@/components/layout/Footer';
-import { getPlaceById } from '@/data/placeDetails';
-import { usePublicItineraries } from '@/hooks/useItineraries';
+import { usePlaceDetails, getPlaceImageUrl } from '@/hooks/usePlaces';
+import { useItinerariesByPlace } from '@/hooks/useItineraries';
+
+// Import local images as fallback
+import santorini from '@/assets/santorini.jpg';
+import tokyo from '@/assets/tokyo.jpg';
+import machuPicchu from '@/assets/machu-picchu.jpg';
+import maldives from '@/assets/maldives.jpg';
+import paris from '@/assets/paris.jpg';
+import bali from '@/assets/bali.jpg';
+
+const imageMap: Record<string, string> = {
+  'santorini': santorini,
+  'tokyo': tokyo,
+  'machu picchu': machuPicchu,
+  'maldives': maldives,
+  'paris': paris,
+  'bali': bali,
+};
 
 export default function PlaceTripsPage() {
   const { id } = useParams<{ id: string }>();
-  const place = getPlaceById(id || '');
-  const { data: allItineraries, isLoading } = usePublicItineraries();
+  const { data: place, isLoading: placeLoading } = usePlaceDetails(id);
+  const { data: itineraries, isLoading: itinerariesLoading } = useItinerariesByPlace(id);
 
-  // Filter itineraries by destination
-  const itineraries = allItineraries?.filter(
-    (itinerary) => 
-      itinerary.destination?.toLowerCase().includes(place?.name.toLowerCase() || '') ||
-      itinerary.country?.toLowerCase().includes(place?.country.toLowerCase() || '')
-  ) || [];
+  const isLoading = placeLoading || itinerariesLoading;
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-20 text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading trips...</p>
+        </div>
+      </Layout>
+    );
+  }
 
   if (!place) {
     return (
@@ -35,12 +58,14 @@ export default function PlaceTripsPage() {
     );
   }
 
+  const placeImage = imageMap[place.name.toLowerCase()] || place.image_url || '/placeholder.svg';
+
   return (
     <Layout showFooter={false}>
       {/* Header */}
       <div className="relative h-[30vh] min-h-[250px]">
         <img
-          src={place.image}
+          src={placeImage}
           alt={place.name}
           className="w-full h-full object-cover"
         />
@@ -76,23 +101,11 @@ export default function PlaceTripsPage() {
           className="mb-8"
         >
           <p className="text-muted-foreground">
-            Explore {itineraries.length} itineraries created by fellow travelers for {place.name}
+            Explore {itineraries?.length || 0} itineraries created by fellow travelers for {place.name}
           </p>
         </motion.div>
 
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-6">
-                  <div className="h-4 bg-muted rounded w-3/4 mb-4" />
-                  <div className="h-3 bg-muted rounded w-1/2 mb-2" />
-                  <div className="h-3 bg-muted rounded w-2/3" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : itineraries.length === 0 ? (
+        {!itineraries || itineraries.length === 0 ? (
           <Card className="p-12 text-center">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
               <Calendar className="w-8 h-8 text-muted-foreground" />
@@ -101,7 +114,7 @@ export default function PlaceTripsPage() {
             <p className="text-muted-foreground mb-6">
               Be the first to create an itinerary for {place.name}!
             </p>
-            <Link to="/create">
+            <Link to={`/place/${id}`}>
               <Button className="gradient-sky text-white">
                 Create Itinerary
               </Button>
