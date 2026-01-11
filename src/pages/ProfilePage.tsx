@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Settings, Grid, Bookmark, Users, MapPin,
-  Link as LinkIcon, Edit, ChevronRight, Camera, Loader2, LogOut, Plane, Heart, UserPlus, UserMinus, Calendar, Clock
+  Link as LinkIcon, Edit, ChevronRight, Camera, Loader2, LogOut, Plane, Heart, UserPlus, UserMinus, Calendar, Clock, Plus, Image as ImageIcon, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProfile, useUpdateProfile, useUploadAvatar } from '@/hooks/useProfile';
 import { useFollowers, useFollowing, useFollowUser, useUnfollowUser, useConnections } from '@/hooks/useConnections';
 import { useSavedItineraries } from '@/hooks/useItineraries';
+import { usePosts, useCreatePost, useUploadPostMedia, useDeletePost } from '@/hooks/usePosts';
 import { resolveImageUrl } from '@/hooks/usePlaces';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -39,6 +40,10 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
+  const [showAddPost, setShowAddPost] = useState(false);
+  const [postCaption, setPostCaption] = useState('');
+  const [postLocation, setPostLocation] = useState('');
+  const postFileInputRef = useRef<HTMLInputElement>(null);
   const [editForm, setEditForm] = useState({
     display_name: '',
     username: '',
@@ -56,10 +61,14 @@ export default function ProfilePage() {
   const { data: followers } = useFollowers();
   const { data: following } = useFollowing();
   const { data: savedItineraries, isLoading: savedLoading } = useSavedItineraries();
+  const { data: posts, isLoading: postsLoading } = usePosts(targetUserId);
   const updateProfile = useUpdateProfile();
   const uploadAvatar = useUploadAvatar();
   const followUser = useFollowUser();
   const unfollowUser = useUnfollowUser();
+  const createPost = useCreatePost();
+  const uploadPostMedia = useUploadPostMedia();
+  const deletePost = useDeletePost();
 
   const isFollowing = connections?.followers?.some(f => f.follower_id === user?.id) || false;
 
@@ -132,6 +141,43 @@ export default function ProfilePage() {
     try {
       await unfollowUser.mutateAsync(targetUserId);
       toast({ title: 'Unfollowed', description: `You unfollowed ${profile?.display_name || 'this user'}.` });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handlePostUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const mediaUrl = await uploadPostMedia.mutateAsync(file);
+      const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
+      
+      await createPost.mutateAsync({
+        media_url: mediaUrl,
+        media_type: mediaType as 'image' | 'video',
+        caption: postCaption || undefined,
+        location: postLocation || undefined,
+      });
+      
+      toast({ title: 'Post created!', description: 'Your post has been shared.' });
+      setShowAddPost(false);
+      setPostCaption('');
+      setPostLocation('');
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to create post',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    try {
+      await deletePost.mutateAsync(postId);
+      toast({ title: 'Post deleted', description: 'Your post has been removed.' });
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
@@ -375,11 +421,11 @@ export default function ProfilePage() {
                 <p className="font-medium text-sm">Connect</p>
               </button>
               <button 
-                onClick={() => setActiveTab('saved')}
+                onClick={() => setShowAddPost(true)}
                 className="p-4 rounded-xl bg-card shadow-travel hover:shadow-travel-lg transition-all text-left"
               >
-                <Bookmark className="w-5 h-5 text-accent mb-2" />
-                <p className="font-medium text-sm">Saved</p>
+                <Plus className="w-5 h-5 text-accent mb-2" />
+                <p className="font-medium text-sm">Add Post</p>
               </button>
               <button 
                 onClick={() => navigate('/my-trips')}
@@ -412,19 +458,74 @@ export default function ProfilePage() {
             </TabsList>
 
             <TabsContent value="posts">
-              <div className="text-center py-12 text-muted-foreground">
-                <Grid className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-                <p>No posts yet</p>
-                {isOwnProfile && (
-                  <Button
-                    variant="outline"
-                    className="mt-4 rounded-xl"
-                    onClick={() => navigate('/explore')}
-                  >
-                    Explore itineraries
-                  </Button>
-                )}
-              </div>
+              {postsLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : posts && posts.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {posts.map((post, index) => (
+                    <motion.div
+                      key={post.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="relative aspect-square rounded-xl overflow-hidden group cursor-pointer"
+                    >
+                      {post.media_type === 'video' ? (
+                        <video
+                          src={post.media_url}
+                          className="w-full h-full object-cover"
+                          muted
+                        />
+                      ) : (
+                        <img
+                          src={post.media_url}
+                          alt={post.caption || 'Post'}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        {post.caption && (
+                          <p className="text-white text-sm px-3 text-center line-clamp-3">{post.caption}</p>
+                        )}
+                      </div>
+                      {isOwnProfile && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeletePost(post.id);
+                          }}
+                          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      {post.location && (
+                        <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-xs bg-black/50 rounded-full px-2 py-1">
+                          <MapPin className="w-3 h-3" />
+                          {post.location}
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <ImageIcon className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+                  <p>No posts yet</p>
+                  {isOwnProfile && (
+                    <Button
+                      variant="outline"
+                      className="mt-4 rounded-xl"
+                      onClick={() => setShowAddPost(true)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add your first post
+                    </Button>
+                  )}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="saved">
@@ -614,6 +715,57 @@ export default function ProfilePage() {
             {!isOwnProfile && (
               <p className="text-center text-muted-foreground py-8">{connections?.following?.length || 0} following</p>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Post Dialog */}
+      <Dialog open={showAddPost} onOpenChange={setShowAddPost}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Post</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="caption">Caption</Label>
+              <Textarea
+                id="caption"
+                value={postCaption}
+                onChange={(e) => setPostCaption(e.target.value)}
+                placeholder="Write a caption..."
+                className="rounded-xl resize-none"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="post-location">Location</Label>
+              <Input
+                id="post-location"
+                value={postLocation}
+                onChange={(e) => setPostLocation(e.target.value)}
+                placeholder="Add location"
+                className="rounded-xl"
+              />
+            </div>
+            <input
+              ref={postFileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              onChange={handlePostUpload}
+            />
+            <Button
+              onClick={() => postFileInputRef.current?.click()}
+              disabled={uploadPostMedia.isPending || createPost.isPending}
+              className="w-full rounded-xl gradient-sky"
+            >
+              {uploadPostMedia.isPending || createPost.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <ImageIcon className="w-4 h-4 mr-2" />
+              )}
+              {uploadPostMedia.isPending ? 'Uploading...' : createPost.isPending ? 'Creating post...' : 'Select Photo or Video'}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
