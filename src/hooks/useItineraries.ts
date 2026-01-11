@@ -160,6 +160,13 @@ export function useItinerary(id: string | undefined) {
 
       if (error) throw error;
 
+      // Fetch profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name, username, avatar_url')
+        .eq('user_id', itinerary.user_id)
+        .single();
+
       // Fetch related data
       const [flightsRes, hotelsRes, daysRes, photosRes] = await Promise.all([
         supabase.from('itinerary_flights').select('*').eq('itinerary_id', id),
@@ -177,21 +184,59 @@ export function useItinerary(id: string | undefined) {
           ]);
           return {
             ...day,
-            activities: activitiesRes.data || [],
-            restaurants: restaurantsRes.data || [],
+            itinerary_activities: activitiesRes.data || [],
+            itinerary_restaurants: restaurantsRes.data || [],
           };
         })
       );
 
       return {
         ...itinerary,
-        flights: flightsRes.data || [],
-        hotels: hotelsRes.data || [],
-        days: daysWithDetails,
-        photos: photosRes.data || [],
-      } as ItineraryWithDetails;
+        profiles: profile,
+        itinerary_flights: flightsRes.data || [],
+        itinerary_hotels: hotelsRes.data || [],
+        itinerary_days: daysWithDetails,
+        itinerary_photos: photosRes.data || [],
+      };
     },
     enabled: !!id,
+  });
+}
+
+// Alias for useItinerary
+export const useItineraryById = useItinerary;
+
+// Get user likes
+export function useUserLikes(userId: string) {
+  return useQuery({
+    queryKey: ['user-likes', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data, error } = await supabase
+        .from('itinerary_likes')
+        .select('itinerary_id')
+        .eq('user_id', userId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+}
+
+// Get user saved itineraries IDs
+export function useUserSavedItineraries(userId: string) {
+  return useQuery({
+    queryKey: ['user-saved', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data, error } = await supabase
+        .from('saved_itineraries')
+        .select('itinerary_id')
+        .eq('user_id', userId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
   });
 }
 
