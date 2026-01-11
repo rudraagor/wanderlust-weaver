@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Moon, Sun, Globe, Lock, Bell, 
   HelpCircle, Info, LogOut, ChevronRight,
-  Eye, EyeOff, Users, Trash2, FileText, Loader2
+  Users, Trash2, FileText, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -62,8 +62,13 @@ export default function SettingsPage() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   
-  const [darkMode, setDarkMode] = useState(document.documentElement.classList.contains('dark'));
-  const [privateAccount, setPrivateAccount] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    if (saved !== null) {
+      return saved === 'true';
+    }
+    return document.documentElement.classList.contains('dark');
+  });
   const [notifications, setNotifications] = useState(true);
   
   // Change Password State
@@ -74,9 +79,18 @@ export default function SettingsPage() {
   });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
+  // Apply dark mode on mount and when it changes
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('darkMode', String(darkMode));
+  }, [darkMode]);
+
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
-    document.documentElement.classList.toggle('dark');
   };
 
   const handleChangePassword = async () => {
@@ -193,14 +207,6 @@ export default function SettingsPage() {
               <h2 className="px-4 pt-4 pb-2 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                 Privacy & Security
               </h2>
-              <SettingItem
-                icon={privateAccount ? EyeOff : Eye}
-                label="Private Account"
-                description="Only followers can see your content"
-                action={
-                  <Switch checked={privateAccount} onCheckedChange={setPrivateAccount} />
-                }
-              />
               <SettingItem
                 icon={Lock}
                 label="Change Password"
