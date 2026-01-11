@@ -12,6 +12,7 @@ import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBookedTrips, useToggleTripPrivacy, useDeleteBookedTrip } from '@/hooks/useBookedTrips';
 import { useExpenses } from '@/hooks/useExpenses';
+import { resolveImageUrl } from '@/hooks/usePlaces';
 import { format } from 'date-fns';
 import {
   AlertDialog,
@@ -111,10 +112,10 @@ export default function MyTripsPage() {
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-4">
-                      {trip.itinerary?.cover_image ? (
+                      {trip.itinerary?.cover_image || trip.itinerary?.destination ? (
                         <img
-                          src={trip.itinerary.cover_image}
-                          alt={trip.itinerary.title}
+                          src={resolveImageUrl(trip.itinerary?.cover_image, trip.itinerary?.destination)}
+                          alt={trip.itinerary?.title || 'Trip'}
                           className="w-20 h-20 rounded-xl object-cover"
                         />
                       ) : (

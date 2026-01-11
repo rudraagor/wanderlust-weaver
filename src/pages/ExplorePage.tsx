@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/layout/Layout';
 import { Footer } from '@/components/layout/Footer';
-import { usePlaces } from '@/hooks/usePlaces';
+import { usePlaces, resolveImageUrl } from '@/hooks/usePlaces';
 import { usePublicItineraries, useLikeItinerary, useUnlikeItinerary, useSaveItinerary, useUnsaveItinerary, useSavedItineraries } from '@/hooks/useItineraries';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -233,17 +233,11 @@ export default function ExplorePage() {
                     <Link to={`/itinerary/${itinerary.id}`}>
                       <Card className="group overflow-hidden hover:shadow-travel-lg transition-all duration-300 h-full">
                         <div className="relative aspect-[4/3] overflow-hidden">
-                          {itinerary.cover_image ? (
-                            <img
-                              src={itinerary.cover_image}
-                              alt={itinerary.title}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                              <MapPin className="w-12 h-12 text-muted-foreground/30" />
-                            </div>
-                          )}
+                          <img
+                            src={resolveImageUrl(itinerary.cover_image, itinerary.destination)}
+                            alt={itinerary.title}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                           
                           {/* Action Buttons */}

@@ -24,6 +24,7 @@ import {
   useUserSavedItineraries
 } from '@/hooks/useItineraries';
 import { useBookTrip } from '@/hooks/useBookedTrips';
+import { resolveImageUrl } from '@/hooks/usePlaces';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -111,7 +112,7 @@ export default function ItineraryDetailsPage() {
       {/* Header */}
       <div className="relative h-[40vh] min-h-[300px]">
         <img
-          src={itinerary.cover_image || '/placeholder.svg'}
+          src={resolveImageUrl(itinerary.cover_image, itinerary.destination)}
           alt={itinerary.title}
           className="w-full h-full object-cover"
         />
