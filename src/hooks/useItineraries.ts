@@ -467,17 +467,19 @@ export function useUnsaveItinerary() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (savedId: string) => {
+    mutationFn: async (itineraryId: string) => {
       if (!user) throw new Error('Not authenticated');
 
       const { error } = await supabase
         .from('saved_itineraries')
         .delete()
-        .eq('id', savedId);
+        .eq('itinerary_id', itineraryId)
+        .eq('user_id', user.id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['saved-itineraries'] });
+      queryClient.invalidateQueries({ queryKey: ['user-saved'] });
     },
   });
 }

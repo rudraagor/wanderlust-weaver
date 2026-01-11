@@ -15,6 +15,9 @@ import AuthPage from "./pages/AuthPage";
 import ChatPage from "./pages/ChatPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import MyTripsPage from "./pages/MyTripsPage";
+import PlaceDetailsPage from "./pages/PlaceDetailsPage";
+import PlaceTripsPage from "./pages/PlaceTripsPage";
+import ItineraryDetailsPage from "./pages/ItineraryDetailsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +41,9 @@ const App = () => (
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/my-trips" element={<MyTripsPage />} />
+            <Route path="/place/:id" element={<PlaceDetailsPage />} />
+            <Route path="/place/:id/trips" element={<PlaceTripsPage />} />
+            <Route path="/itinerary/:id" element={<ItineraryDetailsPage />} />
             <Route path="/plan/:id" element={<TravelPlanPage />} />
             <Route path="/plan/generated" element={<TravelPlanPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

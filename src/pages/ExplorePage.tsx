@@ -1,20 +1,27 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Loader2, MapPin } from 'lucide-react';
+import { Heart, Bookmark, Star, MapPin, Loader2, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/layout/Layout';
+import { Footer } from '@/components/layout/Footer';
+import { destinations } from '@/data/mockData';
 import { usePublicItineraries, useLikeItinerary, useUnlikeItinerary, useSaveItinerary, useUnsaveItinerary, useSavedItineraries } from '@/hooks/useItineraries';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function ExplorePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('destinations');
   
   const { data: itineraries, isLoading } = usePublicItineraries();
   const { data: savedItineraries } = useSavedItineraries();
@@ -38,29 +45,12 @@ export default function ExplorePage() {
     enabled: !!user,
   });
 
-  // Get profiles for itinerary creators
-  const { data: profiles } = useQuery({
-    queryKey: ['itinerary-profiles', itineraries?.map(i => i.user_id)],
-    queryFn: async () => {
-      if (!itineraries || itineraries.length === 0) return {};
-      const userIds = [...new Set(itineraries.map(i => i.user_id))];
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('user_id', userIds);
-      if (error) throw error;
-      return data.reduce((acc: Record<string, any>, profile) => {
-        acc[profile.user_id] = profile;
-        return acc;
-      }, {});
-    },
-    enabled: !!itineraries && itineraries.length > 0,
-  });
-
   const isLiked = (itineraryId: string) => userLikes?.includes(itineraryId) || false;
-  const isSaved = (itineraryId: string) => savedItineraries?.some((s: any) => s.itinerary_id === itineraryId) || false;
+  const isSaved = (itineraryId: string) => savedItineraries?.some((s: any) => s.id === itineraryId) || false;
 
-  const handleLike = async (itineraryId: string) => {
+  const handleLike = async (e: React.MouseEvent, itineraryId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!user) {
       toast({ title: 'Please sign in', description: 'You need to be signed in to like itineraries.', variant: 'destructive' });
       navigate('/auth');
@@ -77,7 +67,9 @@ export default function ExplorePage() {
     }
   };
 
-  const handleSave = async (itineraryId: string) => {
+  const handleSave = async (e: React.MouseEvent, itineraryId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!user) {
       toast({ title: 'Please sign in', description: 'You need to be signed in to save itineraries.', variant: 'destructive' });
       navigate('/auth');
@@ -85,11 +77,8 @@ export default function ExplorePage() {
     }
     try {
       if (isSaved(itineraryId)) {
-        const savedItem = savedItineraries?.find((s: any) => s.itinerary_id === itineraryId);
-        if (savedItem) {
-          await unsaveItinerary.mutateAsync(savedItem.id);
-          toast({ title: 'Removed from saved' });
-        }
+        await unsaveItinerary.mutateAsync(itineraryId);
+        toast({ title: 'Removed from saved' });
       } else {
         await saveItinerary.mutateAsync(itineraryId);
         toast({ title: 'Saved!', description: 'Itinerary added to your saved items.' });
@@ -99,168 +88,223 @@ export default function ExplorePage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </Layout>
-    );
-  }
+  // Filter destinations by search
+  const filteredDestinations = destinations.filter(
+    dest => dest.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            dest.country.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Filter itineraries by search
+  const filteredItineraries = itineraries?.filter(
+    it => it.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          it.destination?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          it.country?.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-8"
-          >
-            <h1 className="font-display font-bold text-3xl mb-2">Explore</h1>
-            <p className="text-muted-foreground">Discover amazing travel itineraries from the community</p>
-          </motion.div>
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <h1 className="font-display font-bold text-3xl md:text-4xl mb-4">Explore</h1>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Discover amazing destinations and travel itineraries from the community
+          </p>
+        </motion.div>
 
-          {/* Feed */}
-          {itineraries && itineraries.length > 0 ? (
-            <div className="space-y-6">
-              {itineraries.map((itinerary, index) => {
-                const profile = profiles?.[itinerary.user_id];
-                return (
-                  <motion.article
+        {/* Search Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="max-w-xl mx-auto mb-8"
+        >
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Input
+              placeholder="Search destinations or itineraries..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-12 pr-4 h-12 rounded-full"
+            />
+          </div>
+        </motion.div>
+
+        {/* Tabs */}
+        <Tabs defaultValue="destinations" className="w-full" onValueChange={setActiveTab}>
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
+            <TabsTrigger value="destinations">Destinations</TabsTrigger>
+            <TabsTrigger value="itineraries">Itineraries</TabsTrigger>
+          </TabsList>
+
+          {/* Destinations Tab */}
+          <TabsContent value="destinations">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredDestinations.map((destination, index) => (
+                <motion.div
+                  key={destination.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Link to={`/place/${destination.id}`}>
+                    <Card className="group overflow-hidden hover:shadow-travel-lg transition-all duration-300 h-full">
+                      <div className="relative aspect-[3/4] overflow-hidden">
+                        <img
+                          src={destination.image}
+                          alt={destination.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                          <div className="flex items-center gap-1 text-white/90 text-sm mb-1">
+                            <MapPin className="w-3 h-3" />
+                            <span>{destination.country}</span>
+                          </div>
+                          <h3 className="text-white font-display font-bold text-xl">
+                            {destination.name}
+                          </h3>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Badge className="bg-white/20 text-white border-0">
+                              <Star className="w-3 h-3 mr-1 fill-yellow-500 text-yellow-500" />
+                              {destination.rating}
+                            </Badge>
+                            <Badge className="bg-white/20 text-white border-0">
+                              {destination.duration}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <CardContent className="p-4">
+                        <p className="text-muted-foreground text-sm line-clamp-2">
+                          {destination.description}
+                        </p>
+                        <div className="flex flex-wrap gap-1 mt-3">
+                          {destination.tags.map((tag) => (
+                            <Badge key={tag} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* Itineraries Tab */}
+          <TabsContent value="itineraries">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : filteredItineraries.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredItineraries.map((itinerary, index) => (
+                  <motion.div
                     key={itinerary.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="bg-card rounded-2xl shadow-travel overflow-hidden"
+                    transition={{ delay: index * 0.05 }}
                   >
-                    {/* Header */}
-                    <div className="flex items-center justify-between p-4">
-                      <div 
-                        className="flex items-center gap-3 cursor-pointer"
-                        onClick={() => navigate(`/profile/${itinerary.user_id}`)}
-                      >
-                        <Avatar className="w-10 h-10 ring-2 ring-primary/20">
-                          <AvatarImage src={profile?.avatar_url} />
-                          <AvatarFallback>{profile?.display_name?.[0] || 'U'}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-semibold text-sm">{profile?.display_name || 'Traveler'}</p>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {itinerary.destination}
-                          </p>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="icon" className="rounded-full">
-                        <MoreHorizontal className="w-5 h-5" />
-                      </Button>
-                    </div>
-
-                    {/* Image */}
-                    <div 
-                      className="relative aspect-[4/5] overflow-hidden cursor-pointer"
-                      onClick={() => navigate(`/plan/${itinerary.id}`)}
-                    >
-                      {itinerary.cover_image ? (
-                        <img 
-                          src={itinerary.cover_image} 
-                          alt={itinerary.title}
-                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                          <MapPin className="w-16 h-16 text-muted-foreground/30" />
-                        </div>
-                      )}
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-                        <h3 className="text-white font-semibold text-lg">{itinerary.title}</h3>
-                        {itinerary.nights && (
-                          <p className="text-white/80 text-sm">{itinerary.nights} nights</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <motion.button
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => handleLike(itinerary.id)}
-                            className="p-2 hover:bg-muted rounded-full transition-colors"
-                          >
-                            <Heart 
-                              className={`w-6 h-6 transition-colors ${
-                                isLiked(itinerary.id) 
-                                  ? 'fill-accent text-accent' 
-                                  : 'text-foreground'
-                              }`} 
+                    <Link to={`/itinerary/${itinerary.id}`}>
+                      <Card className="group overflow-hidden hover:shadow-travel-lg transition-all duration-300 h-full">
+                        <div className="relative aspect-[4/3] overflow-hidden">
+                          {itinerary.cover_image ? (
+                            <img
+                              src={itinerary.cover_image}
+                              alt={itinerary.title}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                             />
-                          </motion.button>
-                          <button 
-                            className="p-2 hover:bg-muted rounded-full transition-colors"
-                            onClick={() => navigate(`/plan/${itinerary.id}`)}
-                          >
-                            <MessageCircle className="w-6 h-6" />
-                          </button>
-                          <button className="p-2 hover:bg-muted rounded-full transition-colors">
-                            <Share2 className="w-6 h-6" />
-                          </button>
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                              <MapPin className="w-12 h-12 text-muted-foreground/30" />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          
+                          {/* Action Buttons */}
+                          <div className="absolute top-3 right-3 flex gap-2">
+                            <Button
+                              variant="secondary"
+                              size="icon"
+                              className="w-8 h-8 rounded-full bg-white/90 hover:bg-white"
+                              onClick={(e) => handleLike(e, itinerary.id)}
+                            >
+                              <Heart className={`w-4 h-4 ${isLiked(itinerary.id) ? 'fill-red-500 text-red-500' : ''}`} />
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="icon"
+                              className="w-8 h-8 rounded-full bg-white/90 hover:bg-white"
+                              onClick={(e) => handleSave(e, itinerary.id)}
+                            >
+                              <Bookmark className={`w-4 h-4 ${isSaved(itinerary.id) ? 'fill-current' : ''}`} />
+                            </Button>
+                          </div>
+
+                          <div className="absolute bottom-0 left-0 right-0 p-4">
+                            <div className="flex items-center gap-1 text-white/90 text-sm mb-1">
+                              <MapPin className="w-3 h-3" />
+                              <span>{itinerary.destination}</span>
+                            </div>
+                            <h3 className="text-white font-semibold line-clamp-1">
+                              {itinerary.title}
+                            </h3>
+                          </div>
                         </div>
-                        <motion.button
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => handleSave(itinerary.id)}
-                          className="p-2 hover:bg-muted rounded-full transition-colors"
-                        >
-                          <Bookmark 
-                            className={`w-6 h-6 transition-colors ${
-                              isSaved(itinerary.id) 
-                                ? 'fill-foreground' 
-                                : ''
-                            }`} 
-                          />
-                        </motion.button>
-                      </div>
-
-                      {/* Likes */}
-                      <p className="font-semibold text-sm mb-2">
-                        {itinerary.likes_count.toLocaleString()} likes
-                      </p>
-
-                      {/* Info */}
-                      <p className="text-sm">
-                        <span className="font-semibold">@{profile?.username || 'user'}</span>{' '}
-                        {itinerary.country && `Trip to ${itinerary.country}`}
-                        {itinerary.budget && ` • ${itinerary.budget} budget`}
-                      </p>
-
-                      {/* Date */}
-                      <p className="text-xs text-muted-foreground mt-2 uppercase">
-                        {new Date(itinerary.created_at).toLocaleDateString('en-US', { 
-                          month: 'long', 
-                          day: 'numeric' 
-                        })}
-                      </p>
-                    </div>
-                  </motion.article>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <MapPin className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
-              <h3 className="text-xl font-semibold mb-2">No itineraries yet</h3>
-              <p className="text-muted-foreground mb-4">Be the first to share your travel adventures!</p>
-              <Button onClick={() => navigate('/create')} className="rounded-xl gradient-sky">
-                Create Itinerary
-              </Button>
-            </div>
-          )}
-        </div>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary">
+                                {itinerary.nights || 0} nights
+                              </Badge>
+                              {itinerary.budget && (
+                                <Badge variant="outline">{itinerary.budget}</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Heart className="w-4 h-4" />
+                              {itinerary.likes_count}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 mt-3">
+                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                              <span className="text-xs font-medium">
+                                {itinerary.profiles?.display_name?.[0] || 'U'}
+                              </span>
+                            </div>
+                            <span className="text-sm text-muted-foreground">
+                              {itinerary.profiles?.display_name || 'Traveler'}
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <MapPin className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
+                <h3 className="text-xl font-semibold mb-2">No itineraries found</h3>
+                <p className="text-muted-foreground mb-4">Be the first to share your travel adventures!</p>
+                <Button onClick={() => navigate('/create')} className="rounded-xl gradient-sky">
+                  Create Itinerary
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
+
+      <Footer />
     </Layout>
   );
 }
