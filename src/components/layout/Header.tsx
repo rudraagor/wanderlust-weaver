@@ -47,13 +47,13 @@ export function Header() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 shrink-0">
-            <div className="w-10 h-10 rounded-xl gradient-sky flex items-center justify-center shadow-travel">
+          <Link to="/" className="flex items-center shrink-0">
+            <div className="h-10 px-3 rounded-xl gradient-sky flex items-center justify-center gap-2 shadow-travel">
               <MapPin className="w-5 h-5 text-primary-foreground" />
+              <span className="font-display font-bold text-lg text-primary-foreground">
+                Velora
+              </span>
             </div>
-            <span className="font-display font-bold text-xl hidden sm:block text-gradient-sky">
-              Velora
-            </span>
           </Link>
 
           {/* Navigation - Center */}
