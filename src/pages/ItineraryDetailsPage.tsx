@@ -138,7 +138,10 @@ export default function ItineraryDetailsPage() {
               <h1 className="font-display font-bold text-3xl md:text-4xl text-white mb-4">
                 {itinerary.title}
               </h1>
-              <div className="flex items-center gap-4">
+              <Link 
+                to={`/profile/${itinerary.user_id}`}
+                className="flex items-center gap-4 hover:opacity-80 transition-opacity"
+              >
                 <Avatar className="w-10 h-10 border-2 border-white">
                   <AvatarImage src={itinerary.profiles?.avatar_url || ''} />
                   <AvatarFallback>
@@ -151,7 +154,7 @@ export default function ItineraryDetailsPage() {
                     <p className="text-sm text-white/70">@{itinerary.profiles.username}</p>
                   )}
                 </div>
-              </div>
+              </Link>
             </motion.div>
           </div>
         </div>
