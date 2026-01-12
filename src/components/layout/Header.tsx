@@ -52,7 +52,7 @@ export function Header() {
               <MapPin className="w-5 h-5 text-primary-foreground" />
             </div>
             <span className="font-display font-bold text-xl hidden sm:block text-gradient-sky">
-              Wanderly
+              Velora
             </span>
           </Link>
 
