@@ -18,6 +18,7 @@ import MyTripsPage from "./pages/MyTripsPage";
 import PlaceDetailsPage from "./pages/PlaceDetailsPage";
 import PlaceTripsPage from "./pages/PlaceTripsPage";
 import ItineraryDetailsPage from "./pages/ItineraryDetailsPage";
+import GuidePage from "./pages/GuidePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/guide" element={<GuidePage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/explore" element={<ExplorePage />} />

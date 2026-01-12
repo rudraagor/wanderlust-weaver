@@ -159,7 +159,11 @@ export default function PlaceTripsPage() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      <Link
+                        to={`/profile/${itinerary.user_id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                      >
                         <Avatar className="w-8 h-8">
                           <AvatarImage src={itinerary.profiles?.avatar_url || ''} />
                           <AvatarFallback>
@@ -176,7 +180,7 @@ export default function PlaceTripsPage() {
                             </p>
                           )}
                         </div>
-                      </div>
+                      </Link>
 
                       {itinerary.budget && (
                         <Badge className="mt-3" variant="secondary">

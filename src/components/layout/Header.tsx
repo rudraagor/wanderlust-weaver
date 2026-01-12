@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bell, MessageCircle, Home, Compass, Plane, User, MapPin, LogIn } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Bell, MessageCircle, Home, Compass, Plane, User, MapPin, LogIn, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useUnreadNotificationCount } from '@/hooks/useNotifications';
+import { UserSearchDropdown } from '@/components/search/UserSearchDropdown';
+import { OnboardingGuide, useOnboarding } from '@/components/onboarding/OnboardingGuide';
 const navItems = [{
   path: '/',
   label: 'Home',
@@ -29,7 +30,6 @@ const navItems = [{
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
   const {
     user
   } = useAuth();
@@ -39,7 +39,11 @@ export function Header() {
   const {
     data: unreadCount
   } = useUnreadNotificationCount();
-  return <header className="sticky top-0 z-50 glass-strong">
+  const { showOnboarding, setShowOnboarding } = useOnboarding();
+  
+  return <>
+    <OnboardingGuide open={showOnboarding} onOpenChange={setShowOnboarding} />
+    <header className="sticky top-0 z-50 glass-strong">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo */}
@@ -70,10 +74,22 @@ export function Header() {
           </nav>
 
           {/* Search Bar */}
-          
+          <UserSearchDropdown />
 
           {/* Right Actions */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Help/Guide Button */}
+            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-xl"
+                onClick={() => setShowOnboarding(true)}
+                title="Getting Started Guide"
+              >
+                <HelpCircle className="w-5 h-5" />
+              </Button>
+            </motion.div>
             <motion.div whileHover={{
             scale: 1.1
           }} whileTap={{
@@ -143,5 +159,6 @@ export function Header() {
         })}
         </div>
       </nav>
-    </header>;
+    </header>
+  </>;
 }

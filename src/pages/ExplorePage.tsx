@@ -285,7 +285,11 @@ export default function ExplorePage() {
                               {itinerary.likes_count}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 mt-3">
+                          <Link 
+                            to={`/profile/${itinerary.user_id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-2 mt-3 hover:opacity-80 transition-opacity"
+                          >
                             <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
                               <span className="text-xs font-medium">
                                 {itinerary.profiles?.display_name?.[0] || 'U'}
@@ -294,7 +298,7 @@ export default function ExplorePage() {
                             <span className="text-sm text-muted-foreground">
                               {itinerary.profiles?.display_name || 'Traveler'}
                             </span>
-                          </div>
+                          </Link>
                         </CardContent>
                       </Card>
                     </Link>

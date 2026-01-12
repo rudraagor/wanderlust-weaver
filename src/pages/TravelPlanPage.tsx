@@ -434,10 +434,10 @@ export default function TravelPlanPage() {
           flights: itinerary.flights.map(f => ({
             departure_airport: f.from,
             arrival_airport: f.to,
-            departure_time: f.time,
+            departure_time: null, // Time strings like "8:00 AM" are not valid timestamps
             arrival_time: null,
-            airline: null,
-            flight_number: null,
+            airline: f.airline || null,
+            flight_number: f.flightNumber || null,
             price: f.price,
           })),
           hotels: itinerary.hotels.map(h => ({
