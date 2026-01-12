@@ -284,6 +284,82 @@ export function useCreateConversation() {
   });
 }
 
+// Find or create a direct conversation with a user
+export function useFindOrCreateConversation() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (targetUserId: string) => {
+      if (!user) throw new Error('Not authenticated');
+
+      // First, find if a direct conversation already exists between these two users
+      const { data: myParticipations, error: partError } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', user.id);
+
+      if (partError) throw partError;
+
+      if (myParticipations && myParticipations.length > 0) {
+        const conversationIds = myParticipations.map(p => p.conversation_id);
+        
+        // Check which of these conversations also have the target user
+        const { data: targetParticipations, error: targetError } = await supabase
+          .from('conversation_participants')
+          .select('conversation_id')
+          .eq('user_id', targetUserId)
+          .in('conversation_id', conversationIds);
+
+        if (targetError) throw targetError;
+
+        if (targetParticipations && targetParticipations.length > 0) {
+          // Check if any of these is a direct conversation (only 2 participants)
+          for (const tp of targetParticipations) {
+            const { data: conv, error: convError } = await supabase
+              .from('conversations')
+              .select('*')
+              .eq('id', tp.conversation_id)
+              .eq('type', 'direct')
+              .single();
+
+            if (!convError && conv) {
+              return conv;
+            }
+          }
+        }
+      }
+
+      // No existing conversation, create a new one
+      const { data: conversation, error: convError } = await supabase
+        .from('conversations')
+        .insert({
+          type: 'direct',
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (convError) throw convError;
+
+      // Add both participants
+      const { error: addPartError } = await supabase
+        .from('conversation_participants')
+        .insert([
+          { conversation_id: conversation.id, user_id: user.id },
+          { conversation_id: conversation.id, user_id: targetUserId },
+        ]);
+
+      if (addPartError) throw addPartError;
+
+      return conversation;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+  });
+}
+
 // Search users for chat
 export function useSearchUsers(query: string) {
   const { user } = useAuth();

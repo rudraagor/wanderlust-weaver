@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ArrowLeft, Send, Search, Plus, Users, User, X, Loader2, Check
 } from 'lucide-react';
@@ -28,6 +28,7 @@ import {
 
 export default function ChatPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -45,6 +46,17 @@ export default function ChatPage() {
   const sendMessage = useSendMessage();
   const createConversation = useCreateConversation();
   const { data: searchResults } = useSearchUsers(searchQuery);
+
+  // Auto-select conversation from URL parameter
+  useEffect(() => {
+    const conversationId = searchParams.get('conversation');
+    if (conversationId && conversations && !selectedConversation) {
+      const conv = conversations.find(c => c.id === conversationId);
+      if (conv) {
+        setSelectedConversation(conv);
+      }
+    }
+  }, [searchParams, conversations, selectedConversation]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

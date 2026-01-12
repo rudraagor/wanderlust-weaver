@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Settings, Grid, Bookmark, Users, MapPin,
-  Link as LinkIcon, Edit, ChevronRight, Camera, Loader2, LogOut, Plane, Heart, UserPlus, UserMinus, Calendar, Clock, Plus, Image as ImageIcon, Trash2
+  Link as LinkIcon, Edit, ChevronRight, Camera, Loader2, LogOut, Plane, Heart, UserPlus, UserMinus, Calendar, Clock, Plus, Image as ImageIcon, Trash2, MessageCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -16,6 +16,7 @@ import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile, useUpdateProfile, useUploadAvatar } from '@/hooks/useProfile';
 import { useFollowers, useFollowing, useFollowUser, useUnfollowUser, useConnections } from '@/hooks/useConnections';
+import { useFindOrCreateConversation } from '@/hooks/useChat';
 import { useSavedItineraries } from '@/hooks/useItineraries';
 import { usePosts, useCreatePost, useUploadPostMedia, useDeletePost } from '@/hooks/usePosts';
 import { resolveImageUrl } from '@/hooks/usePlaces';
@@ -69,8 +70,22 @@ export default function ProfilePage() {
   const createPost = useCreatePost();
   const uploadPostMedia = useUploadPostMedia();
   const deletePost = useDeletePost();
+  const findOrCreateConversation = useFindOrCreateConversation();
 
   const isFollowing = connections?.followers?.some(f => f.follower_id === user?.id) || false;
+
+  const handleMessage = async () => {
+    if (!targetUserId || !user) {
+      navigate('/auth');
+      return;
+    }
+    try {
+      const conversation = await findOrCreateConversation.mutateAsync(targetUserId);
+      navigate(`/chat?conversation=${conversation.id}`);
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  };
 
   // Redirect to auth if not logged in and viewing own profile
   if (!user && !userId) {
@@ -368,20 +383,35 @@ export default function ProfilePage() {
                     </Button>
                   </>
                 ) : (
-                  <Button 
-                    className={`rounded-xl ${isFollowing ? 'bg-muted text-foreground hover:bg-muted/80' : 'gradient-sky'}`}
-                    onClick={isFollowing ? handleUnfollow : handleFollow}
-                    disabled={followUser.isPending || unfollowUser.isPending}
-                  >
-                    {followUser.isPending || unfollowUser.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    ) : isFollowing ? (
-                      <UserMinus className="w-4 h-4 mr-2" />
-                    ) : (
-                      <UserPlus className="w-4 h-4 mr-2" />
-                    )}
-                    {isFollowing ? 'Unfollow' : 'Follow'}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      className={`rounded-xl ${isFollowing ? 'bg-muted text-foreground hover:bg-muted/80' : 'gradient-sky'}`}
+                      onClick={isFollowing ? handleUnfollow : handleFollow}
+                      disabled={followUser.isPending || unfollowUser.isPending}
+                    >
+                      {followUser.isPending || unfollowUser.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : isFollowing ? (
+                        <UserMinus className="w-4 h-4 mr-2" />
+                      ) : (
+                        <UserPlus className="w-4 h-4 mr-2" />
+                      )}
+                      {isFollowing ? 'Unfollow' : 'Follow'}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      className="rounded-xl"
+                      onClick={handleMessage}
+                      disabled={findOrCreateConversation.isPending}
+                    >
+                      {findOrCreateConversation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                      )}
+                      Message
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
