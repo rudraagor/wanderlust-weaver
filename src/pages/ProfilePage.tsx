@@ -398,19 +398,6 @@ export default function ProfilePage() {
                       )}
                       {isFollowing ? 'Unfollow' : 'Follow'}
                     </Button>
-                    <Button 
-                      variant="outline"
-                      className="rounded-xl"
-                      onClick={handleMessage}
-                      disabled={findOrCreateConversation.isPending}
-                    >
-                      {findOrCreateConversation.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      ) : (
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                      )}
-                      Message
-                    </Button>
                   </div>
                 )}
               </div>
